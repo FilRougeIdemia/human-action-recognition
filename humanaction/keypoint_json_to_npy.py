@@ -8,7 +8,7 @@ import warnings
 
 def main():
     # load data
-    data_dir = os.path.join('data', 'preds')
+    data_dir = os.path.join('data', 'input_test')
     data_files = os.listdir(data_dir)[:10]
     output_dir = os.path.join('data', 'output_test')
 
