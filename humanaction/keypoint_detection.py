@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 import os.path as osp
 import json
+import os
 
 def convert_keypoint_definition(keypoints, pose_det_dataset, pose_lift_dataset):
     """Convert pose det dataset keypoints definition to pose lifter dataset
@@ -154,42 +155,28 @@ def convert_keypoint_definition(keypoints, pose_det_dataset, pose_lift_dataset):
     return keypoints_new
 
 
-def main():
-    # Here to change the video path ! 
-    video_path = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\videos\\asseoir.MOV"
-
-    mmdet_config_file = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\demo\\mmdetection_cfg\\faster_rcnn_r50_fpn_coco.py"
-    # mmdet_checkpoint_file https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth
-    mmdet_checkpoint_file = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
-    mmpose_config_file_2D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\2d_kpt_sview_rgb_vid\\posewarper\\posetrack18\\hrnet_w48_posetrack18_384x288_posewarper_stage2.py"
-    # mmpose_checkpoint_file_2D https://download.openmmlab.com/mmpose/top_down/posewarper/hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth
-    mmpose_checkpoint_file_2D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth"
-    mmpose_config_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\3d_kpt_sview_rgb_vid\\video_pose_lift\\h36m\\videopose3d_h36m_243frames_fullconv_supervised_cpn_ft.py"
-    # mmpose_checkpoint_file_3D https://download.openmmlab.com/mmpose/body3d/videopose/videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth
-    mmpose_checkpoint_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth"
-    out_video_root = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\out"
-    use_multi_frames = True # use multiple frames for inference on current frame
-    online = True # to use only past frames when using multiple frames for inference on current frame
-    device = "cuda:0"
-    bbox_thr = 0.9 # Bounding box score threshold
-    use_oks_tracking = True # Using OKS tracking
-    tracking_thr = 0.3 # Tracking threshold
-    det_cat_id = 1 # Category id for bounding box detection model
-    save_out_video = True
-    # second stage parameters
-    num_instances = -1 # The number of 3D poses to be visualized in every frame. If less than 0, it will be set to the number of pose results in the first frame.
-    rebase_keypoint_height = True # Rebase the predicted 3D pose so its lowest keypoint has a height of 0 (landing on the ground). This is useful for visualization when the model do not predict the global position of the 3D pose.
-    norm_pose_2d = True # Scale the bbox (along with the 2D pose) to the average bbox scale of the dataset, and move the bbox (along with the 2D pose) to the average bbox center of the dataset. This is useful when bbox is small, especially in multi-person scenarios.
-    radius = 8 # Keypoint radius for visualization
-    thickness = 2 # Link thickness for visualization
-    show = False # whether to show visualizations.
-
-    out_json_root = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\jsons"
-
-
-    video = mmcv.VideoReader(video_path)
-
-
+def detect_stream_keypoints(video, # an iterable containing frames of the video stream
+                            resolution, # resolution of the video
+                           mmdet_config_file = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\demo\\mmdetection_cfg\\faster_rcnn_r50_fpn_coco.py",
+                           mmdet_checkpoint_file = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth",
+                           mmpose_config_file_2D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\2d_kpt_sview_rgb_vid\\posewarper\\posetrack18\\hrnet_w48_posetrack18_384x288_posewarper_stage2.py",
+                           mmpose_checkpoint_file_2D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth",
+                           mmpose_config_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\3d_kpt_sview_rgb_vid\\video_pose_lift\\h36m\\videopose3d_h36m_243frames_fullconv_supervised_cpn_ft.py",
+                           mmpose_checkpoint_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth",
+                           use_multi_frames = True, # use multiple frames for inference on current frame
+                           online = True, # to use only past frames when using multiple frames for inference on current frame
+                           device = "cuda:0",
+                           bbox_thr = 0.9, # Bounding box score threshold
+                           use_oks_tracking = True, # Using OKS tracking
+                           tracking_thr = 0.3, # Tracking threshold 
+                           det_cat_id = 1, # Category id for bounding box detection model
+                           num_instances = -1, # The number of 3D poses to be visualized in every frame. If less than 0, it will be set to the number of pose results in the first frame.
+                           rebase_keypoint_height = True, # Rebase the predicted 3D pose so its lowest keypoint has a height of 0 (landing on the ground). This is useful for visualization when the model do not predict the global position of the 3D pose.
+                           norm_pose_2d = True, # Scale the bbox (along with the 2D pose) to the average bbox scale of the dataset, and move the bbox (along with the 2D pose) to the average bbox center of the dataset. This is useful when bbox is small, especially in multi-person scenarios.
+                           radius = 8, # Keypoint radius for visualization
+                           thickness = 2, # Link thickness for visualization
+                           show = False, # whether to show visualizations.
+                           ):
     ####################################################
     #--------- First stage: 2D pose detection ---------#
     ####################################################
@@ -260,11 +247,6 @@ def main():
     pose_lift_model = init_pose_model(mmpose_config_file_3D, mmpose_checkpoint_file_3D, device=device)
     # Only "PoseLifter" model is supported for the 2nd stage
     pose_lift_dataset = pose_lift_model.cfg.data['test']['type']
-    # Prepare to save the output video
-    if save_out_video:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        fps = video.fps
-        writer = None
 
     # convert keypoint definition
     for pose_det_results in pose_det_results_list:
@@ -279,6 +261,7 @@ def main():
     pose_lift_dataset_info = DatasetInfo(pose_lift_dataset_info)
 
     print('Running 2D-to-3D pose lifting inference...')
+    video_results_vis = [] # storage for video 3D keypoints visualization
     video_results_export = [] # storage for video 3D keypoints json exports
     for i, pose_det_results in enumerate(mmcv.track_iter_progress(pose_det_results_list)):
         # extract and pad input pose2d sequence
@@ -296,7 +279,7 @@ def main():
             dataset=pose_lift_dataset,
             dataset_info=pose_lift_dataset_info,
             with_track_id=True,
-            image_size=video.resolution,
+            image_size=resolution,
             norm_pose_2d=norm_pose_2d)
 
         # Pose processing
@@ -334,8 +317,61 @@ def main():
             "num_pedestrians" : len(pose_lift_results_export),
             "detections" : copy.deepcopy((pose_lift_results_export))
         }
+        # keep at video level
+        video_results_vis.append(pose_lift_results_vis)
         video_results_export.append(frame_results_export)
 
+    return pose_det_results_list, video_results_vis, video_results_export, pose_lift_model, pose_lift_dataset, pose_lift_dataset_info
+
+
+def detect_video_keypoints(original_video_dir, 
+                           keypoint_video_dir, 
+                           keypoint_json_dir, 
+                           file_name,
+                           mmdet_config_file = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\demo\\mmdetection_cfg\\faster_rcnn_r50_fpn_coco.py",
+                           mmdet_checkpoint_file = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth",
+                           mmpose_config_file_2D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\2d_kpt_sview_rgb_vid\\posewarper\\posetrack18\\hrnet_w48_posetrack18_384x288_posewarper_stage2.py",
+                           mmpose_checkpoint_file_2D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth",
+                           mmpose_config_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\3d_kpt_sview_rgb_vid\\video_pose_lift\\h36m\\videopose3d_h36m_243frames_fullconv_supervised_cpn_ft.py",
+                           mmpose_checkpoint_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth",
+                           use_multi_frames = True, # use multiple frames for inference on current frame
+                           online = True, # to use only past frames when using multiple frames for inference on current frame
+                           device = "cuda:0",
+                           bbox_thr = 0.9, # Bounding box score threshold
+                           use_oks_tracking = True, # Using OKS tracking
+                           tracking_thr = 0.3, # Tracking threshold 
+                           det_cat_id = 1, # Category id for bounding box detection model
+                           save_out_video = True,
+                           num_instances = -1, # The number of 3D poses to be visualized in every frame. If less than 0, it will be set to the number of pose results in the first frame.
+                           rebase_keypoint_height = True, # Rebase the predicted 3D pose so its lowest keypoint has a height of 0 (landing on the ground). This is useful for visualization when the model do not predict the global position of the 3D pose.
+                           norm_pose_2d = True, # Scale the bbox (along with the 2D pose) to the average bbox scale of the dataset, and move the bbox (along with the 2D pose) to the average bbox center of the dataset. This is useful when bbox is small, especially in multi-person scenarios.
+                           radius = 8, # Keypoint radius for visualization
+                           thickness = 2, # Link thickness for visualization
+                           show = False # whether to show visualizations.
+                           ):
+    # Here to change the video path ! 
+    video_path = os.path.join(original_video_dir, file_name)
+    out_video_root = keypoint_video_dir
+    out_json_root = keypoint_json_dir
+    # video_path = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\videos\\S001C001P001R001A006_rgb.avi"
+    # video_path = "C:\\\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\input_test\\video_JM_20s.mp4"
+    # out_video_root = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\out"
+    # out_json_root = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\jsons"
+    # mmdet_checkpoint_file https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth
+    # mmpose_checkpoint_file_2D https://download.openmmlab.com/mmpose/top_down/posewarper/hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth
+    # mmpose_checkpoint_file_3D https://download.openmmlab.com/mmpose/body3d/videopose/videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth
+    video = mmcv.VideoReader(video_path)
+
+    pose_det_results_list, video_results_vis, video_results_export, pose_lift_model, pose_lift_dataset, pose_lift_dataset_info  = detect_stream_keypoints(video, video.resolution) # TODO make something to pass all the config mess (dict or class)
+
+    # Prepare to save the output video
+    if save_out_video:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fps = video.fps
+        writer = None
+
+    for i, pose_det_results in enumerate(mmcv.track_iter_progress(pose_det_results_list)):
+        pose_lift_results_vis = video_results_vis[i]['detections']
         # Visualization
         if num_instances < 0:
             num_instances = len(pose_lift_results_vis)
@@ -355,7 +391,7 @@ def main():
             if writer is None:
                 writer = cv2.VideoWriter(
                     osp.join(out_video_root,
-                             f'vis_{osp.basename(video_path)}'), fourcc,
+                             file_name), fourcc,
                     fps, (img_vis.shape[1], img_vis.shape[0]))
             writer.write(img_vis)
 
@@ -380,5 +416,15 @@ def main():
         outfile.write(json_string)
 
 
+def detect_keypoints(original_video_dir, keypoint_video_dir, keypoint_json_dir, file_names=None):
+    if file_names is None:
+        file_names = os.listdir(original_video_dir)
+    for file_name in file_names:
+        detect_video_keypoints(original_video_dir, keypoint_video_dir, keypoint_json_dir, file_name)
+
+
 if __name__ == '__main__':
-    main()
+    original_video_dir = 'data/input/video'
+    keypoint_video_dir = 'data/output/keypoint_video'
+    keypoint_json_dir = 'data/output/keypoint_json'
+    detect_keypoints(original_video_dir, keypoint_video_dir, keypoint_json_dir)
