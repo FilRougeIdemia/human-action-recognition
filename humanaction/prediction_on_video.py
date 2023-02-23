@@ -8,12 +8,12 @@ import matplotlib.pyplot as plt
 import ffmpeg
 
 # path to skeleton npy folder
-data2D_dir = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\mmpose_ntu\\"
+data2D_dir = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\input_test\\"
 data2D_files = ["S001C001P001R001A006.npy"]
 # path to video folder
 out_path = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\out"
-video_filename = "vis_S001C001P001R001A006_rgb.avi"
-out_video_filename = "vis_S001C001P001R001A006_rgb_predict.avi"
+video_filename = "vis_video_JM_20s.mp4"
+out_video_filename = "vis_video_JM_20s_predict.mp4"
 
 def main():
     # take a skeleton file name and predict for each frame.
@@ -42,7 +42,8 @@ def main():
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     # Define the codec and create VideoWriter object.
     # Define the fps to be equal to 24. Also frame size is passed.
-    writer = cv2.VideoWriter(os.path.join(out_path, out_video_filename), cv2.VideoWriter_fourcc('M','J','P','G'), 24, (frame_width, frame_height))
+    # cv2.VideoWriter_fourcc('M','J','P','G')
+    writer = cv2.VideoWriter(os.path.join(out_path, out_video_filename), cv2.VideoWriter_fourcc('m', 'p', '4', 'v'), 24, (frame_width, frame_height))
     
 
     # Read until video is completed

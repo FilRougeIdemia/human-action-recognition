@@ -1,3 +1,5 @@
+*.pth
+
 .ipynb_checkpoints
 .vscode
 
@@ -5,3 +7,8 @@ data/gifs
 data/nturgbd60_skeletons
 data/nturgbd60_skeletons_2D
 data/nturgbd60_skeletons_3D
+data/mmpose_ntu
+data/preds
+
+humanaction/__pycache__
+humanaction/mm_checkpoint

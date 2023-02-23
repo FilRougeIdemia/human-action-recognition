@@ -39,7 +39,7 @@ prediction_video_dir = 'data/output/prediction_keypoint_video'
 file_name = 'video_JM_10s_HD.mp4'
 
 base_file_name = file_name[:-4]
-stream_dir = os.path.join('data/output/stream', base_file_name)
+stream_dir = os.path.join('data/output/stream/online', base_file_name)
 
 is_sliding_window = True
 window_size = 45

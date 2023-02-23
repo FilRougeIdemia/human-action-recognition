@@ -6,11 +6,17 @@ import numpy as np
 import json
 import warnings
 
-def main():
+def convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir, file_names=None):
     # load data
-    data_dir = os.path.join('data', 'input_test')
-    data_files = os.listdir(data_dir)[:10]
-    output_dir = os.path.join('data', 'output_test')
+    #data_dir = os.path.join('data', 'input_test')
+    #data_files = os.listdir(data_dir)[:10]
+    #output_dir = os.path.join('data', 'output_test')
+    data_dir = keypoint_json_dir
+    data_files = file_names
+    if file_names is None:
+        data_files = os.listdir(data_dir)
+    output_dir = keypoint_npy_dir
+
 
     incomplete_files_2d = set()
     incomplete_files_3d = set()
@@ -37,12 +43,14 @@ def main():
                             continue
                     
 
-                    np.save(os.path.join(output_dir, file_name[:-9]+'_2D.npy'), data2D)
-                    np.save(os.path.join(output_dir, file_name[:-9]+'_3D.npy'), data3D)
+                    np.save(os.path.join(output_dir, file_name[:-5]+'_2D.npy'), data2D)
+                    #np.save(os.path.join(output_dir, file_name[:-9]+'_3D.npy'), data3D)
                     break
     print("List of all 'incomplete' files :")
     print(incomplete_files_2d)
     print(incomplete_files_3d)
 
 if __name__ == '__main__':
-    main()
+    keypoint_json_dir = 'data/output/keypoint_json'
+    keypoint_npy_dir = 'data/output/keypoint_npy'
+    convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir)
