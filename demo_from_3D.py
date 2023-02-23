@@ -28,8 +28,8 @@ print("\nloading data...")
 root_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = root_dir + "/data/"
 
-data2D_dir = data_dir + "nturgbd60_skeletons_2D/"
-data3D_dir = data_dir + "nturgbd60_skeletons_3D/"
+data2D_dir = data_dir + "mmpose_ntu_2d_sample/"
+data3D_dir = data_dir + "mmpose_ntu_3d_sample/"
 
 data2D_files = os.listdir(data2D_dir)
 data3D_files = os.listdir(data3D_dir)
@@ -50,9 +50,32 @@ classes = [5, 6, 7, 8, 14, 24, 30, 32, 42]
 # class 7 (33) : check time (from watch)
 # class 8 (43) : falling
 
-bust_joints = [0, 1, 20, 2, 3]
-arm_joints = [23, 24, 11, 10, 9, 8, 20, 4, 5, 6, 7, 22, 21]
-leg_joints = [19, 18, 17, 16, 0, 12, 13, 14, 15]
+# bust_joints = [0, 1, 20, 2, 3]
+# arm_joints = [23, 24, 11, 10, 9, 8, 20, 4, 5, 6, 7, 22, 21]
+# leg_joints = [19, 18, 17, 16, 0, 12, 13, 14, 15]
+
+# 0: 'nose',
+# 1: 'left_eye',
+# 2: 'right_eye',
+# 3: 'left_ear',
+# 4: 'right_ear',
+# 5: 'left_shoulder',
+# 6: 'right_shoulder',
+# 7: 'left_elbow',
+# 8: 'right_elbow',
+# 9: 'left_wrist',
+# 10: 'right_wrist',
+# 11: 'left_hip',
+# 12: 'right_hip',
+# 13: 'left_knee',
+# 14: 'right_knee',
+# 15: 'left_ankle',
+# 16: 'right_ankle'
+
+bust_joints = [0, 1, 2, 3,4]
+arm_joints = [5,6,7,8,9,10]
+leg_joints = [11,12,13,14,15,16]
+
 body_parts = [bust_joints, arm_joints, leg_joints]
 
 
@@ -68,7 +91,7 @@ class HumanActionDataset2D(Dataset):
 
     def __getitem__(self, idx):
         tensor = torch.Tensor(np.load(self.data_dir + self.data_files[idx]))
-        tensor = tensor.reshape((tensor.shape[0], 50))
+        tensor = tensor.reshape((tensor.shape[0], 2*17))
         label = self.classes.index(int(self.data_files[idx][17:-4])-1)
         return (tensor, label)
 
@@ -87,9 +110,9 @@ class HumanActionDataset3D(Dataset):
         tensor = torch.Tensor(np.load(self.data_dir + self.data_files[idx]))
         if self.with_depth:
             tensor[:,:,2] = 3
-            tensor = tensor.reshape((tensor.shape[0], 75))
+            tensor = tensor.reshape((tensor.shape[0], 3*17))
         else:
-            tensor = torch.tensor([[tensor[i,k//2,k%2] for k in range(50)] for i in range(tensor.shape[0])])
+            tensor = torch.tensor([[tensor[i,k//2,k%2] for k in range(2*17)] for i in range(tensor.shape[0])])
         label = self.classes.index(int(self.data_files[idx][17:-4])-1)
         return (tensor, label)
 
@@ -135,9 +158,10 @@ class LSTM03D(nn.Module):
         results = self.classifier(h_n_reshape) # reshaping the data for clasifier
         return results, h_n, c_n
 
-model_LSTM3DF = LSTM03D(nb_classes=len(classes), input_size=75, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
+model_LSTM3DF = LSTM03D(nb_classes=len(classes), input_size=3*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
 model_LSTM3DF.to(device)
-model_LSTM3DF.load_state_dict(torch.load("./models_saved/LSTM3DF_{}.pt".format(mode)))
+#model_LSTM3DF.load_state_dict(torch.load("./models_saved/LSTM3DF_{}.pt".format(mode)))
+model_LSTM3DF.load_state_dict(torch.load("./models_saved/LSTM03D_mmpose.pt"))
 model_LSTM3DF.eval()
 
 
@@ -155,6 +179,8 @@ state_list = []
 current_sequence_index = np.random.randint(low=0, high=len(HAD3D))
 current_sequence_2D,label_2D = HAD2D[current_sequence_index]
 current_sequence_3D,label_3D = HAD3D[current_sequence_index]
+print(label_2D)
+print(label_3D)
 assert label_2D == label_3D
 
 acc0, acc1, curr, delay, found, n, N1, N2 = 0, 0, 1, 0, False, 0, 1, 0
@@ -184,14 +210,14 @@ while cv2.getWindowProperty("Demo from 3D data", 0) >= 0:
         thickness=2)
 
     if mode == 0:
-        t = current_sequence_3D[0].reshape(1,75).to(device)
+        t = current_sequence_3D[0].reshape(1,3*17).to(device)
         state_list.append(t)
         state_list = state_list[-100:]
-        state = torch.reshape(torch.concat(state_list), (1, len(state_list), 75))
+        state = torch.reshape(torch.concat(state_list), (1, len(state_list), 3*17))
         h_n, c_n = None, None
         output, h_n, c_n = model_LSTM3DF(state, h_n, c_n)
     else:
-        t = current_sequence_3D[0].reshape(1,1,75).to(device)
+        t = current_sequence_3D[0].reshape(1,1,3*17).to(device)
         output, h_n, c_n = model_LSTM3DF(t, h_n, c_n)
     h_n, c_n = copy.copy(h_n).to(device), copy.copy(c_n).to(device)
     probs = sm(output).reshape(len(classes)).detach().cpu().numpy()

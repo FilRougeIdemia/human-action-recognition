@@ -12,3 +12,5 @@ data/preds
 
 humanaction/__pycache__
 humanaction/mm_checkpoint
+
+models_saved
