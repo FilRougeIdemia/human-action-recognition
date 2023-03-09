@@ -131,6 +131,7 @@ def process_stream_offline(video, # an iterable containing frames of the video s
                            online=True,
                            buffer_size=5,
                            window_size=45,
+                           stride=30,
                            bbox_thr = 0.9, # Bounding box score threshold
                            use_oks_tracking = True, # Using OKS tracking
                            tracking_thr = 0.3, # Tracking threshold 
@@ -175,6 +176,7 @@ def process_stream_offline(video, # an iterable containing frames of the video s
     
     # Prepare visualization
     writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc('m', 'p', '4', 'v'), video.fps, video.resolution)
+    labels = None
 
     # Loop over incoming frames
     for frame_id, cur_frame in enumerate(video):
@@ -267,12 +269,15 @@ def process_stream_offline(video, # an iterable containing frames of the video s
                 probs = predict_on_stream(skel_stream, is_sliding_window=False)
                 top_indices = np.argsort(probs[-1,...])[9-3:]
                 labels = [actions[c] for c in classes]
-                annotations = (res['bbox'][:4], [labels[i] for i in top_indices], probs[-1,...][top_indices])
+                #skeletons.pop(0) => equivalent to stride=1
+                skeletons = skeletons[stride:] # does not work with stride longer than the window_size with this code
+            if labels is not None:
                 # Performing visualization
+                # with the latest available annotations
+                annotations = (res['bbox'][:4], [labels[i] for i in top_indices], probs[-1,...][top_indices])
                 vis_frames = visualize(frames=[cur_frame], annotations=[[annotations]])
                 vis_frame = vis_frames[0]
                 writer.write(vis_frame)
-                skeletons.pop(0)
 
             # Pop to keep only buffer    
             pose_det_results_list.pop(0)
@@ -289,8 +294,8 @@ if __name__ == '__main__':
     keypoint_json_dir = 'data/output/keypoint_json'
     prediction_dir = 'data/output/prediction' # contains both sliding window and whole
     prediction_video_dir = 'data/output/prediction_keypoint_video'
-    #file_name = 'video_JM_10s_HD.mp4'
-    file_name='20230112_095742_PP_PH.mp4'
+    file_name = 'video_JM_10s_HD.mp4'
+    #file_name='20230112_095742_PP_PH.mp4'
     
     base_file_name = file_name[:-4]
     stream_dir = os.path.join('data/output/stream/offline')
@@ -303,4 +308,4 @@ if __name__ == '__main__':
 
     person_det_model, pose_det_model, pose_lift_model = init_mm_models()
 
-    process_stream_offline(video, osp.join(stream_dir, file_name), person_det_model, pose_det_model, pose_lift_model, window_size=window_size)
+    process_stream_offline(video, osp.join(stream_dir, file_name), person_det_model, pose_det_model, pose_lift_model, window_size=window_size, stride=stride)
