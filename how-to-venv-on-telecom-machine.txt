@@ -1,0 +1,47 @@
+Assuming you already have the project in the right location /home/users/[your id]/...
+Go to your "/home/users/[your id]/.../human-action-recognition" folder on your machine.
+
+First pull from the github repo so that your .gitignore ignores the virtual env we are about to fill.
+
+Now create a venv 
+
+tp-5d02-01% python3 -m venv idemia_venv
+
+And activate it
+
+tp-5d02-01% source idemia_venv/bin/activate
+
+Proceed to install the necessary packages
+I follow the order of appearance on https://colab.research.google.com/drive/1gHKkliCAF_eL1Kyd0NzJibXhBR68VX-1?usp=share_link
+
+tp-5d02-01% python3 -m pip install --upgrade pip
+tp-5d02-01% pip install numpy
+tp-5d02-01% pip3 install torch torchvision torchaudio
+tp-5d02-01% pip install opencv-python
+tp-5d02-01% pip install openmim
+
+BEWARE TO USE mim INSTEAD OF pip FOR mmcv-full
+
+tp-5d02-01% mim install mmcv-full
+
+get out of you human-action-recognition folder by going to the parent folder
+
+tp-5d02-01% cd ..
+
+tp-5d02-01% git clone https://github.com/open-mmlab/mmdetection.git
+tp-5d02-01% cd mmdetection
+tp-5d02-01% pip install -r requirements/build.txt
+tp-5d02-01% pip install "git+https://github.com/open-mmlab/cocoapi.git#subdirectory=pycocotools"
+tp-5d02-01% pip install -v -e .  # or "python setup.py develop"
+tp-5d02-01% cd ..
+
+tp-5d02-01% git clone https://github.com/open-mmlab/mmpose.git
+tp-5d02-01% cd mmpose
+tp-5d02-01% pip install -r requirements.txt
+tp-5d02-01% pip install -v -e .
+tp-5d02-01% cd ..
+
+tp-5d02-01% mim install mmaction2 -f https://github.com/open-mmlab/mmaction2.git
+
+
+
