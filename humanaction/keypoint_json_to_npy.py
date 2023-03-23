@@ -73,3 +73,6 @@ if __name__ == '__main__':
     keypoint_json_dir = 'data/output/keypoint_json'
     keypoint_npy_dir = 'data/output/keypoint_npy'
     convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir)
+    #keypoint_json_dir = '/home/users/jma-21/BGDIA706 - Fil Rouge/acquisition_sacs_decoupees/jsons'
+    #keypoint_npy_dir = 'data/input/acquisition_sacs'
+    #convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir, ntu_style=True)

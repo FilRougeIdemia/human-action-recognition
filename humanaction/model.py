@@ -25,7 +25,7 @@ class HumanActionDataset(Dataset):
         self.data_type = data_type
         self.data_dirs = ["data/input/mmpose_ntu/", "data/input/acquisition_sacs/2D"] if data_dirs is None else data_dirs
         self.is_train = is_train
-        self.classes = [5, 6, 7, 8, 14, 24, 30, 32, 42, 61] if classes is None else classes
+        self.classes = [5, 6, 7, 8, 14, 24, 30, 32, 42, 61, 62, 63, 64, 65, 66, 67] if classes is None else classes
         if self.is_train:
             self.data_dirs_files = [[data_file for data_file in os.listdir(data_dir) if int(data_file[17:-4])-1 in self.classes] for data_dir in self.data_dirs] if data_dirs_files is None else data_dirs_files
         else:
@@ -38,7 +38,7 @@ class HumanActionDataset(Dataset):
         self.actions = actions
         
         for i,elem in enumerate(self.classes):
-            print("class {} : {}".format(i, self.actions[elem]))
+            print("class {} : {}".format(i, self.actions[elem - 1]))
 
     def __len__(self):
         return len(self._data_files_path)
@@ -198,6 +198,7 @@ def stratified_split(dataset: HumanActionDataset, test_size: float):
     return train_dataset, test_dataset
 
 
+
 def main():
     # setting the device as the GPU if available, else the CPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -205,7 +206,6 @@ def main():
 
     # Instanciate dataset
     HAD2D = HumanActionDataset('2D', is_train=True)
-    #train_dataset2D, val_dataset2D = torch.utils.data.random_split(HAD2D, [int(0.85*len(HAD2D)), len(HAD2D)-int(0.85*len(HAD2D))])
     train_dataset2D, val_dataset2D = stratified_split(dataset=HAD2D, test_size=0.2)
     train_dataloader2D = DataLoader(dataset=train_dataset2D, batch_size=32, collate_fn=PadSequence(), shuffle=True)
     val_dataloader2D = DataLoader(dataset=val_dataset2D, batch_size=32, collate_fn=PadSequence(), shuffle=True)
@@ -222,6 +222,7 @@ def main():
     losses_accs_LSTM03D = train_model(model, criterion, optimizer, nb_epochs, epoch_print_frequence, train_dataset2D, val_dataset2D, train_dataloader2D, val_dataloader2D, HAD2D.classes, device)
     torch.save(model.state_dict(), "models_saved/action_lstm_2D_luggage.pt")
 
+    # Graphiques de train
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
 
     ax[0].set(title="Action LSTM (2D) - Loss evolution")
