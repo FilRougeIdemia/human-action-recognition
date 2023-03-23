@@ -23,38 +23,42 @@ class HumanActionDataset(Dataset):
     - (list) classes: id of the classes to consider.
     """
 
-    # constant that can become arguments
-    data2D_dir = "data/input/mmpose_ntu/"
-    data2D_files = os.listdir(data2D_dir)
-    with open("C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\actions.txt", 'r') as actions_file:
-        actions = [line.replace('\n', '') for line in actions_file.readlines()]
-        actions_file.close()
-    classes = [5, 6, 7, 8, 14, 24, 30, 32, 42]
-    for i,elem in enumerate(classes):
-        print("class {} : {}".format(i, actions[elem]))
-
-    def __init__(self, data_type:str='2D', data_dir:str=data2D_dir, data_files:list=data2D_files, classes:list=classes, is_train:bool=False):
+    def __init__(self, data_type:str='2D', data_dirs:list=None, data_dirs_files:list=None, _data_files_path:list=None, classes:list=None, actions:list=None, is_train:bool=False):
         self.data_type = data_type
-        self.data_dir = data_dir
+        self.data_dirs = ["data/input/mmpose_ntu/", "data/input/acquisition_sacs/"] if data_dirs is None else data_dirs
         self.is_train = is_train
         if self.is_train:
-            self.data_files = [data_file for data_file in data_files if int(data_file[17:-4])-1 in classes]
+            self.data_files = [[data_file for data_file in os.listdir(data_dir) if self.condition_name_data_file(data_file)] for data_dir in data_dirs] if data_dirs_files is None else data_dirs_files
         else:
-            self.data_files = os.listdir(data_dir)
-        self.classes = classes
+            self.data_files = [os.listdir(dir) for dir in self.data_dirs]
+        self.classes = [5, 6, 7, 8, 14, 24, 30, 32, 42, 61] if classes is None else classes
+        self._data_files_path = [os.path.join(data_dir, data_dir_file) for data_dir, data_dir_files in zip(self.data_dirs, self.data_dirs_files) for data_dir_file in data_dir_files] if _data_files_path is None else _data_files_path
+        if actions is None:
+            with open("C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\actions.txt", 'r') as actions_file:
+                actions = [line.replace('\n', '') for line in actions_file.readlines()]
+                actions_file.close()
+        self.actions = actions
         
+        for i,elem in enumerate(self.classes):
+            print("class {} : {}".format(i, self.actions[elem]))
 
     def __len__(self):
-        return len(self.data_files)
+        return len(self._data_files_path)
 
     def __getitem__(self, idx):
-        tensor = torch.Tensor(np.load(os.path.join(self.data_dir, self.data_files[idx])))
+        tensor = torch.Tensor(np.load(self._data_files_path[idx]))
         tensor = tensor.reshape((tensor.shape[0], 2*17))/1000
         if self.is_train:
             label = self.classes.index(int(self.data_files[idx][17:-4])-1)
         else:
             label = 999 # TODO change that
         return (tensor, label)
+    
+    def condition_name_data_file(self, data_file):
+        cdt1 = int(data_file[17:-4])-1 in self.classes
+        #cdt2 = self.actions[self.classes] in data_file
+        result = cdt1 # or cdt2
+        return result
 
 
 class PadSequence():
