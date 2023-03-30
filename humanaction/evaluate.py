@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # Instanciate model
     model = ActionLSTM(nb_classes=len(HAD2D.classes), input_size=2*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device) 
-    model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage.pt"))
+    model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage_0329.pt"))
     model.eval()
 
     evaluate(model, train_dataloader2D, device)

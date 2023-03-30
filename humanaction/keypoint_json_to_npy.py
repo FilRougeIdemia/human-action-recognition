@@ -2,6 +2,7 @@
 # takes a folder
 
 import os
+import os.path as osp
 import numpy as np
 import json
 import warnings
@@ -12,7 +13,7 @@ with open("data/actions.txt", 'r') as f:
 def rename_in_ntu_style(file_name, file_name_idx):
     for idx, action in enumerate(actions):
         if action.lower() in file_name.lower():
-            new_file_name = f"I{str(file_name_idx).zfill(3)}XXXXXXXXXXXXA{str(idx + 1).zfill(3)}"
+            new_file_name = f"{file_name[:-5]}_A{str(idx + 1).zfill(3)}"
             return new_file_name
 
 def convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir, file_names=None, ntu_style=False):

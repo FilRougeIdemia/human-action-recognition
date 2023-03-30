@@ -11,22 +11,22 @@ import matplotlib.pyplot as plt
 
 
 # path to skeleton 2d npy folder
-data2D_dir = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\mmpose_ntu\\"
+data2D_dir = "data/input/acquisition_sacs/2D"
 # path to skeleton 3d npy folder
-data3D_dir = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\mmpose_ntu_3d\\"
-data_files = "S001C001P001R001A006.npy"
+data3D_dir = "data/input/acquisition_sacs/3D"
+data_files = "vd_20230112_095742_0_segment_292_336_action_hold bag_label_1_A062.npy"
 # path to video folder
-video_path = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\videos"
-video_filename = "S001C001P001R001A006_rgb.avi"
+video_path = "/home/users/jma-21/BGDIA706 - Fil Rouge/acquisition_sacs_decoupees/videos"
+video_filename = "vd_20230112_095742_0_segment_292_336_action_hold bag_label_1.mp4"
 # path to output folder
-out_path = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\NTU_samples_and_inference_code\\out"
-out_video_filename = "S001C001P001R001A006_rgb_skeleton.avi"
+out_path = "data/output/keypoint_video"
+out_video_filename = "vd_20230112_095742_0_segment_292_336_action_hold bag_label_1.mp4"
 
 
 def main():
-    mmpose_config_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\3d_kpt_sview_rgb_vid\\video_pose_lift\\h36m\\videopose3d_h36m_243frames_fullconv_supervised_cpn_ft.py"
+    mmpose_config_file_3D = "/home/users/jma-21/BGDIA706 - Fil Rouge/mmpose/configs/body/3d_kpt_sview_rgb_vid/video_pose_lift/h36m/videopose3d_h36m_243frames_fullconv_supervised_cpn_ft.py"
     # mmpose_checkpoint_file_3D https://download.openmmlab.com/mmpose/body3d/videopose/videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth
-    mmpose_checkpoint_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth"
+    mmpose_checkpoint_file_3D = "data/config/mm_checkpoint/videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth"
     device = "cuda:0"
     radius = 8 # Keypoint radius for visualization
     thickness = 2 # Link thickness for visualization

@@ -3,13 +3,20 @@
 import os
 import torch
 from torch.utils.data import Dataset, DataLoader, Subset
+from torchvision.ops import sigmoid_focal_loss
 import time
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit
+from collections import Counter
+from torch.utils.data import WeightedRandomSampler
+from torch.utils.tensorboard import SummaryWriter
+# local import
+from focal_loss import FocalLoss
 
+writer = SummaryWriter()
 
 class HumanActionDataset(Dataset):
 
@@ -27,7 +34,7 @@ class HumanActionDataset(Dataset):
         self.is_train = is_train
         self.classes = [5, 6, 7, 8, 14, 24, 30, 32, 42, 61, 62, 63, 64, 65, 66, 67] if classes is None else classes
         if self.is_train:
-            self.data_dirs_files = [[data_file for data_file in os.listdir(data_dir) if int(data_file[17:-4])-1 in self.classes] for data_dir in self.data_dirs] if data_dirs_files is None else data_dirs_files
+            self.data_dirs_files = [[data_file for data_file in os.listdir(data_dir) if int(data_file[-7:-4])-1 in self.classes] for data_dir in self.data_dirs] if data_dirs_files is None else data_dirs_files
         else:
             self.data_dirs_files = [os.listdir(dir) for dir in self.data_dirs]
         self._data_files_path = [os.path.join(data_dir, data_dir_file) for data_dir, data_dir_files in zip(self.data_dirs, self.data_dirs_files) for data_dir_file in data_dir_files] if _data_files_path is None else _data_files_path
@@ -47,7 +54,7 @@ class HumanActionDataset(Dataset):
         tensor = torch.Tensor(np.load(self._data_files_path[idx]))
         tensor = tensor.reshape((tensor.shape[0], 2*17))/1000
         if self.is_train:
-            label = self.classes.index(int(os.path.basename(self._data_files_path[idx])[17:-4])-1)
+            label = self.classes.index(int(os.path.basename(self._data_files_path[idx])[-7:-4])-1)
         else:
             label = 999 # TODO change that
         return (tensor, label)
@@ -82,10 +89,10 @@ class PadSequence():
 
 
 def train_model(model, criterion, optimizer, nb_epochs, epoch_print_frequence, train_dataset, val_dataset, train_dataloader, val_dataloader, classes, device):
-
     s = time.time()
     train_losses, val_losses, train_accs, val_accs = [], [], [], []
     sm = nn.Softmax(dim=1).to(device)
+    step = 0
 
     for epoch in range(nb_epochs):
         
@@ -125,6 +132,7 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_print_frequence, t
                 else:
                     running_loss_val += loss.item()
                     running_acc_val += int(torch.sum(outputs.argmax(dim=1) == labels.argmax(dim=1)))
+                step += 1
 
         running_loss_train /= len(train_dataloader)
         running_loss_val /= len(val_dataloader)
@@ -135,6 +143,13 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_print_frequence, t
         val_losses.append(running_loss_val)
         train_accs.append(running_acc_train)
         val_accs.append(running_acc_val)
+
+        # Log to TensorBoard
+        writer.add_scalar("Loss train", running_loss_train, global_step=step)
+        writer.add_scalar("Loss val", running_loss_val, global_step=step)
+        writer.add_scalar("Accuracy train", running_acc_train, global_step=step)
+        writer.add_scalar("Accuracy val", running_acc_val, global_step=step)
+
 
         if (epoch == 0) or ((epoch+1) % epoch_print_frequence == 0):
             print("epochs {} ({} s) | train loss : {} | val loss : {} | train acc : {} | val acc : {}".format(
@@ -198,6 +213,31 @@ def stratified_split(dataset: HumanActionDataset, test_size: float):
     return train_dataset, test_dataset
 
 
+def calculate_sample_weights(dataset):
+    labels = [label for _, label in dataset]
+    counter = Counter(labels)
+    total_samples = len(dataset)
+    class_weights = {cls: total_samples / count for cls, count in counter.items()}
+    sample_weights = [class_weights[label] for label in labels]
+    return sample_weights
+
+
+def plot_class_distribution(dataset, title, writer, tag):
+    labels = [label for _, label in dataset]
+    counter = Counter(labels)
+
+    plt.figure()
+    plt.bar(list(counter.keys()), list(counter.values()))
+    plt.title(title)
+    plt.xlabel("Class")
+    plt.ylabel("Frequency")
+    plt.savefig("models_saved/{}_class_distribution.png".format(tag))
+    plt.close()
+
+    # Log class distribution to TensorBoard
+    for i, count in counter.items():
+        writer.add_scalars("Classes distribution", {str(key): value for key, value in dict(counter).items()})
+
 
 def main():
     # setting the device as the GPU if available, else the CPU
@@ -207,20 +247,36 @@ def main():
     # Instanciate dataset
     HAD2D = HumanActionDataset('2D', is_train=True)
     train_dataset2D, val_dataset2D = stratified_split(dataset=HAD2D, test_size=0.2)
-    train_dataloader2D = DataLoader(dataset=train_dataset2D, batch_size=32, collate_fn=PadSequence(), shuffle=True)
-    val_dataloader2D = DataLoader(dataset=val_dataset2D, batch_size=32, collate_fn=PadSequence(), shuffle=True)
+
+    # Distribution of classes within train and val datasets
+    plot_class_distribution(train_dataset2D, "Train Dataset Class Distribution", writer, "Train_Dataset")
+    plot_class_distribution(val_dataset2D, "Val Dataset Class Distribution", writer, "Val_Dataset")
+
+    # Calculate sample weights
+    train_sample_weights = calculate_sample_weights(train_dataset2D)
+    val_sample_weights = calculate_sample_weights(val_dataset2D)
+
+    # Create WeightedRandomSamplers
+    train_sampler = WeightedRandomSampler(train_sample_weights, len(train_dataset2D))
+    val_sampler = WeightedRandomSampler(val_sample_weights, len(val_dataset2D))
+
+    train_dataloader2D = DataLoader(dataset=train_dataset2D, batch_size=32, collate_fn=PadSequence(), sampler=train_sampler)
+    val_dataloader2D = DataLoader(dataset=val_dataset2D, batch_size=32, collate_fn=PadSequence(), sampler=val_sampler)
+
     # Instanciate model
     model = ActionLSTM(nb_classes=len(HAD2D.classes), input_size=2*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device)
     # Declare training parameters
-    criterion = nn.CrossEntropyLoss()
+    criterion = FocalLoss()
+    # alternatively : #criterion = nn.CrossEntropyLoss()
+
     optimizer = torch.optim.Adam(params=model.parameters(), lr=1e-4)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     nb_epochs = 200
     epoch_print_frequence = 20
     # Train
     losses_accs_LSTM03D = train_model(model, criterion, optimizer, nb_epochs, epoch_print_frequence, train_dataset2D, val_dataset2D, train_dataloader2D, val_dataloader2D, HAD2D.classes, device)
-    torch.save(model.state_dict(), "models_saved/action_lstm_2D_luggage.pt")
+    torch.save(model.state_dict(), "models_saved/action_lstm_2D_luggage_0329.pt")
 
     # Graphiques de train
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
@@ -238,7 +294,7 @@ def main():
     ax[1].set_ylabel("accuracy")
 
     plt.legend()
-    plt.savefig("models_saved/action_lstm_2D_luggage_loss_acc.png")
+    plt.savefig("models_saved/action_lstm_2D_luggage_0329_loss_acc.png")
 
 if __name__ == "__main__":
     main()

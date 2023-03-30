@@ -1,18 +1,21 @@
-*.pth
-
+# IDE related files
 .ipynb_checkpoints
 .vscode
 
-data/gifs
-data/nturgbd60_skeletons
-data/nturgbd60_skeletons_2D
-data/nturgbd60_skeletons_3D
-data/mmpose_ntu
-data/preds
+# Data
+data/input
+data/output
 
+# Config files such as model checkpoints
 humanaction/__pycache__
 humanaction/mm_checkpoint
+*.pth
 
+# Saved Models
 models_saved
 
+# Virtual environment
 idemia_venv
+
+# Runs for TensorBoard
+runs
