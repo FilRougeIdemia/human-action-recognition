@@ -1,6 +1,7 @@
 # Model
 # Declare a LSTM and train it on NTU skeleton action data
 import os
+import os.path as osp
 import torch
 from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision.ops import sigmoid_focal_loss
@@ -30,7 +31,8 @@ class HumanActionDataset(Dataset):
 
     def __init__(self, data_type:str='2D', data_dirs:list=None, data_dirs_files:list=None, _data_files_path:list=None, classes:list=None, actions:list=None, is_train:bool=False):
         self.data_type = data_type
-        self.data_dirs = ["data/input/mmpose_ntu/", "data/input/acquisition_sacs/2D"] if data_dirs is None else data_dirs
+        self.data_dim = int(self.data_type[0])
+        self.data_dirs = [osp.join("data/input/mmpose_ntu", self.data_type), osp.join("data/input/acquisition_sacs", self.data_type)] if data_dirs is None else data_dirs
         self.is_train = is_train
         self.classes = [5, 6, 7, 8, 14, 24, 30, 32, 42, 61, 62, 63, 64, 65, 66, 67] if classes is None else classes
         if self.is_train:
@@ -52,7 +54,8 @@ class HumanActionDataset(Dataset):
 
     def __getitem__(self, idx):
         tensor = torch.Tensor(np.load(self._data_files_path[idx]))
-        tensor = tensor.reshape((tensor.shape[0], 2*17))/1000
+        normalization = 1000 if self.data_dim==2 else 1
+        tensor = tensor.reshape((tensor.shape[0], self.data_dim*17))/normalization
         if self.is_train:
             label = self.classes.index(int(os.path.basename(self._data_files_path[idx])[-7:-4])-1)
         else:
@@ -245,26 +248,26 @@ def main():
     print("device: {}".format(device))
 
     # Instanciate dataset
-    HAD2D = HumanActionDataset('2D', is_train=True)
-    train_dataset2D, val_dataset2D = stratified_split(dataset=HAD2D, test_size=0.2)
+    HAD = HumanActionDataset('3D', is_train=True)
+    train_dataset, val_dataset = stratified_split(dataset=HAD, test_size=0.2)
 
     # Distribution of classes within train and val datasets
-    plot_class_distribution(train_dataset2D, "Train Dataset Class Distribution", writer, "Train_Dataset")
-    plot_class_distribution(val_dataset2D, "Val Dataset Class Distribution", writer, "Val_Dataset")
+    plot_class_distribution(train_dataset, "Train Dataset Class Distribution", writer, "Train_Dataset")
+    plot_class_distribution(val_dataset, "Val Dataset Class Distribution", writer, "Val_Dataset")
 
     # Calculate sample weights
-    train_sample_weights = calculate_sample_weights(train_dataset2D)
-    val_sample_weights = calculate_sample_weights(val_dataset2D)
+    train_sample_weights = calculate_sample_weights(train_dataset)
+    val_sample_weights = calculate_sample_weights(val_dataset)
 
     # Create WeightedRandomSamplers
-    train_sampler = WeightedRandomSampler(train_sample_weights, len(train_dataset2D))
-    val_sampler = WeightedRandomSampler(val_sample_weights, len(val_dataset2D))
+    train_sampler = WeightedRandomSampler(train_sample_weights, len(train_dataset))
+    val_sampler = WeightedRandomSampler(val_sample_weights, len(val_dataset))
 
-    train_dataloader2D = DataLoader(dataset=train_dataset2D, batch_size=32, collate_fn=PadSequence(), sampler=train_sampler)
-    val_dataloader2D = DataLoader(dataset=val_dataset2D, batch_size=32, collate_fn=PadSequence(), sampler=val_sampler)
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=32, collate_fn=PadSequence(), sampler=train_sampler)
+    val_dataloader = DataLoader(dataset=val_dataset, batch_size=32, collate_fn=PadSequence(), sampler=val_sampler)
 
     # Instanciate model
-    model = ActionLSTM(nb_classes=len(HAD2D.classes), input_size=2*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
+    model = ActionLSTM(nb_classes=len(HAD.classes), input_size=HAD.data_dim*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device)
     # Declare training parameters
     criterion = FocalLoss()
@@ -275,26 +278,26 @@ def main():
     nb_epochs = 200
     epoch_print_frequence = 20
     # Train
-    losses_accs_LSTM03D = train_model(model, criterion, optimizer, nb_epochs, epoch_print_frequence, train_dataset2D, val_dataset2D, train_dataloader2D, val_dataloader2D, HAD2D.classes, device)
-    torch.save(model.state_dict(), "models_saved/action_lstm_2D_luggage_0329.pt")
+    losses_accs_LSTM03D = train_model(model, criterion, optimizer, nb_epochs, epoch_print_frequence, train_dataset, val_dataset, train_dataloader, val_dataloader, HAD.classes, device)
+    torch.save(model.state_dict(), f"models_saved/action_lstm_{HAD.data_type}_luggage_0329.pt")
 
     # Graphiques de train
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
 
-    ax[0].set(title="Action LSTM (2D) - Loss evolution")
+    ax[0].set(title="Action LSTM - Loss evolution")
     ax[0].plot(losses_accs_LSTM03D[0], label="train")
     ax[0].plot(losses_accs_LSTM03D[1], label="test")
     ax[0].set_xlabel("epoch")
     ax[0].set_ylabel("loss")
 
-    ax[1].set(title="Action LSTM (2D) - Accuracy evolution")
+    ax[1].set(title="Action LSTM - Accuracy evolution")
     ax[1].plot(losses_accs_LSTM03D[2], label="train")
     ax[1].plot(losses_accs_LSTM03D[3], label="test")
     ax[1].set_xlabel("epoch")
     ax[1].set_ylabel("accuracy")
 
     plt.legend()
-    plt.savefig("models_saved/action_lstm_2D_luggage_0329_loss_acc.png")
+    plt.savefig("models_saved/action_lstm_{HAD.data_type}_luggage_0329_loss_acc.png")
 
 if __name__ == "__main__":
     main()

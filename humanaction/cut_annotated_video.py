@@ -107,12 +107,12 @@ def cut_both_video_json(video_file, video_dir, annotation_file, keypoint_dir, vi
 
 if __name__ == '__main__':
     annotation_file = '/home/users/jma-21/BGDIA706 - Fil Rouge/human-action-recognition/data/input/annotation/Annotations.csv'
-    video_file = '20230112_095742.mp4'
+    video_file = 'VID20230112094353.mp4'
     video_dir = '/home/users/jma-21/BGDIA706 - Fil Rouge/acquisition_sacs/'
     keypoint_dir = '/home/users/jma-21/BGDIA706 - Fil Rouge/kpts'
     video_output_dir = "/home/users/jma-21/BGDIA706 - Fil Rouge/acquisition_sacs_decoupees/videos"
     json_output_dir = "/home/users/jma-21/BGDIA706 - Fil Rouge/acquisition_sacs_decoupees/jsons"
     json_only = False
-    cut_both_video_json(video_file, video_dir+'vd', annotation_file, keypoint_dir, video_output_dir, json_output_dir, json_only)
+    cut_both_video_json(video_file, video_dir+'wd', annotation_file, keypoint_dir, video_output_dir, json_output_dir, json_only)
     #for specific_dir in ['jm', 'ph', 'pp', 'sg', 'vd', 'wd']:
     #    cut_jsons_with_annotations(video_dir+specific_dir, annotation_file, keypoint_dir, json_output_dir)

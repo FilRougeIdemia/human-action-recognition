@@ -63,14 +63,15 @@ if __name__ == "__main__":
     print("device: {}".format(device))
 
     # Instanciate dataset
-    HAD2D = HumanActionDataset('2D', is_train=True)
-    train_dataset2D, val_dataset2D = stratified_split(dataset=HAD2D, test_size=0.2)
-    train_dataloader2D = DataLoader(dataset=train_dataset2D)
-    val_dataloader2D = DataLoader(dataset=val_dataset2D)
+    HAD = HumanActionDataset('3D', is_train=True)
+    train_dataset, val_dataset = stratified_split(dataset=HAD, test_size=0.2)
+    train_dataloader = DataLoader(dataset=train_dataset)
+    val_dataloader = DataLoader(dataset=val_dataset)
     # Instanciate model
-    model = ActionLSTM(nb_classes=len(HAD2D.classes), input_size=2*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
+    model = ActionLSTM(nb_classes=len(HAD.classes), input_size=HAD.data_dim*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device) 
-    model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage_0329.pt"))
+    model.load_state_dict(torch.load("models_saved/action_lstm_3D_luggage_0329.pt"))
     model.eval()
 
-    evaluate(model, train_dataloader2D, device)
+    evaluate(model, train_dataloader, device)
+    evaluate(model, val_dataloader, device)

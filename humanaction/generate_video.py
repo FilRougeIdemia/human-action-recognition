@@ -14,13 +14,13 @@ import matplotlib.pyplot as plt
 data2D_dir = "data/input/acquisition_sacs/2D"
 # path to skeleton 3d npy folder
 data3D_dir = "data/input/acquisition_sacs/3D"
-data_files = "vd_20230112_095742_0_segment_292_336_action_hold bag_label_1_A062.npy"
+data_files = "wd_VID20230112094353_0_segment_51_90_action_take off bag_label_5_A066.npy"
 # path to video folder
 video_path = "/home/users/jma-21/BGDIA706 - Fil Rouge/acquisition_sacs_decoupees/videos"
-video_filename = "vd_20230112_095742_0_segment_292_336_action_hold bag_label_1.mp4"
+video_filename = "wd_VID20230112094353_0_segment_51_90_action_take off bag_label_5.mp4"
 # path to output folder
 out_path = "data/output/keypoint_video"
-out_video_filename = "vd_20230112_095742_0_segment_292_336_action_hold bag_label_1.mp4"
+out_video_filename = "wd_VID20230112094353_0_segment_51_90_action_take off bag_label_5.mp4"
 
 
 def main():
