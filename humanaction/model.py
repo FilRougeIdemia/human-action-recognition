@@ -34,7 +34,7 @@ class HumanActionDataset(Dataset):
         self.data_dim = int(self.data_type[0])
         self.data_dirs = [osp.join("data/input/mmpose_ntu", self.data_type), osp.join("data/input/acquisition_sacs", self.data_type)] if data_dirs is None else data_dirs
         self.is_train = is_train
-        self.classes = [5, 6, 7, 8, 14, 24, 30, 32, 42, 61, 62, 63, 64, 65, 66, 67] if classes is None else classes
+        self.classes = [5, 6, 7, 8, 14, 24, 30, 32, 42, 87, 88, 89, 90, 121, 122, 123] if classes is None else classes
         if self.is_train:
             self.data_dirs_files = [[data_file for data_file in os.listdir(data_dir) if int(data_file[-7:-4])-1 in self.classes] for data_dir in self.data_dirs] if data_dirs_files is None else data_dirs_files
         else:
@@ -275,11 +275,11 @@ def main():
 
     optimizer = torch.optim.Adam(params=model.parameters(), lr=1e-4)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
-    nb_epochs = 200
+    nb_epochs = 500
     epoch_print_frequence = 20
     # Train
     losses_accs_LSTM03D = train_model(model, criterion, optimizer, nb_epochs, epoch_print_frequence, train_dataset, val_dataset, train_dataloader, val_dataloader, HAD.classes, device)
-    torch.save(model.state_dict(), f"models_saved/action_lstm_{HAD.data_type}_luggage_0329.pt")
+    torch.save(model.state_dict(), f"models_saved/action_lstm_{HAD.data_type}_luggage_0403.pt")
 
     # Graphiques de train
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
@@ -297,7 +297,7 @@ def main():
     ax[1].set_ylabel("accuracy")
 
     plt.legend()
-    plt.savefig("models_saved/action_lstm_{HAD.data_type}_luggage_0329_loss_acc.png")
+    plt.savefig("models_saved/action_lstm_{HAD.data_type}_luggage_0403_loss_acc.png")
 
 if __name__ == "__main__":
     main()

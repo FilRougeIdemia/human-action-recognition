@@ -60,7 +60,10 @@ def convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir, file_names=None, nt
                             incomplete_files_3d.append(file_name)
                             continue
                     
-                    file_name = rename_in_ntu_style(file_name, file_name_idx) if ntu_style else file_name
+                    file_name = rename_in_ntu_style(file_name, file_name_idx) if ntu_style else file_name[:-5]
+                    # Sometimes filename ends with unecessary _rgb suffix
+                    if file_name.endswith("_rgb"):
+                        file_name = file_name.rstrip("_rgb")
                     os.makedirs(output_dir_2D) if not os.path.exists(output_dir_2D) else None
                     os.makedirs(output_dir_3D) if not os.path.exists(output_dir_3D) else None
                     np.save(os.path.join(output_dir_2D, file_name+'.npy'), data2D)
@@ -71,9 +74,9 @@ def convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir, file_names=None, nt
     print(incomplete_files_3d)
 
 if __name__ == '__main__':
-    keypoint_json_dir = 'data/output/keypoint_json'
-    keypoint_npy_dir = 'data/output/keypoint_npy'
-    convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir)
-    #keypoint_json_dir = '/home/users/jma-21/BGDIA706 - Fil Rouge/acquisition_sacs_decoupees/jsons'
-    #keypoint_npy_dir = 'data/input/acquisition_sacs'
-    #convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir, ntu_style=True)
+    #keypoint_json_dir = 'data/output/keypoint_json'
+    #keypoint_npy_dir = 'data/output/keypoint_npy'
+    #convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir)
+    keypoint_json_dir = 'data/input/predictions'
+    keypoint_npy_dir = 'data/input/mmpose_ntu'
+    convert_json_to_npy(keypoint_json_dir, keypoint_npy_dir, ntu_style=False)

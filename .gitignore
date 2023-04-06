@@ -14,6 +14,9 @@ humanaction/mm_checkpoint
 # Saved Models
 models_saved
 
+# Images of results
+assets
+
 # Virtual environment
 idemia_venv
 
