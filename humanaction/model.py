@@ -18,7 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 from focal_loss import FocalLoss
 from evaluate_training import confusion_matrix, top_k_accuracy
 
-device_index=1
+device_index=2
 if torch.cuda.is_available():
     torch.cuda.set_device(device_index)
     device = torch.device(f"cuda:{device_index}")
@@ -166,7 +166,7 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
                         for i in range(inputs.shape[0]):
                             labels[i][int(data[-1][i])] = 1
                         labels = labels.to(device)
-                        epoch_log_obs_cnt += 1
+                        epoch_log_obs_cnt += len(inputs)
                         outputs = model(inputs)[0]
                         preds = torch.argmax(outputs, dim=1)
                         loss = criterion(outputs, labels)
@@ -200,7 +200,9 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
                     writer.add_figure(f'Confusion [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', confusion_mat, global_step=step)
 
                     # reset to 0 to compute over the next (dataloader, epoch)
+                    print(f"Epoch {epoch + 1}/{nb_epochs} - Loss {dataset_type} : {epoch_log_loss}, Accuracy: {epoch_log_acc}")
                     epoch_log_loss, epoch_log_acc, epoch_log_obs_cnt = 0, 0, 0
+                    
 
 
 class ActionLSTM(nn.Module):
@@ -323,26 +325,8 @@ def main():
     epoch_log_frequence = 1
     step_log_frequence_train = 10
     # Train
-    losses_accs_LSTM03D = train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, step_log_frequence_train, train_dataset, val_dataset, train_dataloader, val_dataloader, HAD.classes, device, writer)
+    train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, step_log_frequence_train, train_dataset, val_dataset, train_dataloader, val_dataloader, HAD.classes, device, writer)
     torch.save(model.state_dict(), f"models_saved/action_lstm_{HAD.data_type}_luggage_0410.pt")
-
-    # Graphiques de train
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
-
-    ax[0].set(title="Action LSTM - Loss evolution")
-    ax[0].plot(losses_accs_LSTM03D[0], label="train")
-    ax[0].plot(losses_accs_LSTM03D[1], label="test")
-    ax[0].set_xlabel("epoch")
-    ax[0].set_ylabel("loss")
-
-    ax[1].set(title="Action LSTM - Accuracy evolution")
-    ax[1].plot(losses_accs_LSTM03D[2], label="train")
-    ax[1].plot(losses_accs_LSTM03D[3], label="test")
-    ax[1].set_xlabel("epoch")
-    ax[1].set_ylabel("accuracy")
-
-    plt.legend()
-    plt.savefig(f"models_saved/action_lstm_{HAD.data_type}_luggage_0410_loss_acc.png")
 
 if __name__ == "__main__":
     main()

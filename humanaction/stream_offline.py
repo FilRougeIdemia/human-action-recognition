@@ -102,12 +102,12 @@ def abbrev(name):
     return name
 
 
-def init_mm_models(mmdet_config_file = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\demo\\mmdetection_cfg\\faster_rcnn_r50_fpn_coco.py",
-                    mmdet_checkpoint_file = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth",
-                    mmpose_config_file_2D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\2d_kpt_sview_rgb_vid\\posewarper\\posetrack18\\hrnet_w48_posetrack18_384x288_posewarper_stage2.py",
-                    mmpose_checkpoint_file_2D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth",
-                    mmpose_config_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\mmpose\\configs\\body\\3d_kpt_sview_rgb_vid\\video_pose_lift\\h36m\\videopose3d_h36m_243frames_fullconv_supervised_cpn_ft.py",
-                    mmpose_checkpoint_file_3D = "C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\humanaction\\mm_checkpoint\\videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth",
+def init_mm_models(mmdet_config_file = "../mmpose/demo/mmdetection_cfg/faster_rcnn_r50_fpn_coco.py",
+                    mmdet_checkpoint_file = "humanaction/mm_checkpoint/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth",
+                    mmpose_config_file_2D = "../mmpose/configs/body/2d_kpt_sview_rgb_vid/posewarper/posetrack18/hrnet_w48_posetrack18_384x288_posewarper_stage2.py",
+                    mmpose_checkpoint_file_2D = "humanaction/mm_checkpoint/hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth",
+                    mmpose_config_file_3D = "../mmpose/configs/body/3d_kpt_sview_rgb_vid/video_pose_lift/h36m/videopose3d_h36m_243frames_fullconv_supervised_cpn_ft.py",
+                    mmpose_checkpoint_file_3D = "human-action-recognition/humanaction/mm_checkpoint/videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth",
                     device = "cuda:0",
                     ):
     print('Stage 1: 2D pose detection.')
@@ -294,8 +294,8 @@ if __name__ == '__main__':
     keypoint_json_dir = 'data/output/keypoint_json'
     prediction_dir = 'data/output/prediction' # contains both sliding window and whole
     prediction_video_dir = 'data/output/prediction_keypoint_video'
-    file_name = 'video_JM_10s_HD.mp4'
-    #file_name='20230112_095742_PP_PH.mp4'
+    #file_name = 'video_JM_10s_HD.mp4'
+    file_name='VID20230112100603.mp4'
     
     base_file_name = file_name[:-4]
     stream_dir = os.path.join('data/output/stream/offline')

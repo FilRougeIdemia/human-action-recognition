@@ -115,7 +115,7 @@ def predict_on_videos(keypoint_npy_dir, keypoint_video_dir, prediction_dir, pred
     # Load model
     model = ActionLSTM(nb_classes=len(classes), input_size=2*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device)
-    model.load_state_dict(torch.load("C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\models_saved\\action_lstm_2D.pt"))
+    model.load_state_dict(torch.load("./models_saved/action_lstm_2D.pt"))
     model.eval()
 
     # Predict
