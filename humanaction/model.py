@@ -16,7 +16,7 @@ from torch.utils.data import WeightedRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 # local import
 from focal_loss import FocalLoss
-from evaluate_training import confusion_matrix, top_k_accuracy
+from evaluate_training import compute_metrics
 
 device_index=0
 if torch.cuda.is_available():
@@ -190,7 +190,7 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
                         acc_per_class.update({act:correct / len(all_labels_bin)})
                     writer.add_scalars(f"Accuracy per class [{dataset_type} set][Epoch interval:{epoch_log_frequence}]", acc_per_class, global_step=step)
                     # Calculate confusion matrix for the entire val_dataset
-                    confusion_mat, f1, precision, recall = confusion_matrix(all_outputs, all_labels, normalize=None)
+                    cm, f1, precision, recall, accuracy, mean_results, confusion_mat = compute_metrics(all_outputs, all_labels, normalize=None)
                     writer.add_scalar(f'F1 overall [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', np.mean(f1), global_step=step)
                     writer.add_scalars(f'F1 per class [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', {act:f1[act_idx] for act_idx, act in train_dataset.dataset.classes_names.items()}, global_step=step)
                     writer.add_scalar(f'Precision overall [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', np.mean(precision), global_step=step)

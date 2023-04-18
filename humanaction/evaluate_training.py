@@ -3,8 +3,43 @@ import numpy as np
 from sklearn import metrics
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
-def confusion_matrix(y_pred, y_real, normalize=None):
+
+def plot_perclass_metric(fig, x, y, metric):
+    fig.clf()
+
+    fig.set_size_inches(6, 4)
+    
+    # calculate the average Accuracy score
+    avg_metric_score = np.mean(y)
+
+    # convert the average Accuracy score to a string and concatenate it with the rest of the title
+    title = f"{metric} scores per class\n(Average {metric} score: {avg_metric_score:.1f})"
+    
+    # create example data
+    colors = plt.cm.tab20c(range(len(x)))
+
+    # create a bar chart
+    plt.barh(x, y, color=colors)
+
+    # add figures on top of each bar
+    for i, v in enumerate(y):
+        plt.text(v + 0.03, i + 0.05, str(np.round(v, 1)), ha='center')
+
+    # rotate x-axis tick labels by 90 degrees
+    plt.xticks(rotation=90)
+    
+    # show title
+    plt.title(title)
+
+    # display the chart
+    plt.show()
+    
+    return fig
+
+
+def compute_metrics(y_pred, y_real, normalize=None):
     """Compute confusion matrix.
     Args:
         y_pred (list[int] | np.ndarray[int]): Prediction labels.
@@ -51,16 +86,45 @@ def confusion_matrix(y_pred, y_real, normalize=None):
                    'check time (from watch)', 'fall down', 'grab bag', 'hold bag',
                    'leave bag', 'put something into bag', 'put on bag', 'take off bag',
                    'take something out of bag']
-    # Create a Matplotlib Figure object
-    fig, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, cmap='Blues', xticklabels=class_names, yticklabels=class_names, ax=ax)
-    
+
     # calculate f1, precision and recall
     f1 = metrics.f1_score(y_real, y_pred, average=None, zero_division=0)
     precision = metrics.precision_score(y_real, y_pred, average=None, zero_division=0)
     recall = metrics.recall_score(y_real, y_pred, average=None, zero_division=0)
+    accuracy = [metrics.accuracy_score([y_real[j] for j in range(len(y_real)) if y_real[j] == i], 
+                     [y_pred[j] for j in range(len(y_pred)) if y_real[j] == i]) 
+                      for i in range(len(class_names))]
+    
+    # calculate mean metrics versions
+    accuracy_results = []
+    accuracy_results += [np.mean(accuracy[:9]), np.mean(accuracy[9:]), np.mean(accuracy)]
 
-    return fig, f1, precision, recall
+    f1_results = []
+    f1_results += [np.mean(f1[:9]), np.mean(f1[9:]), np.mean(f1)]
+
+    precision_results = []
+    precision_results += [np.mean(precision[:9]), np.mean(precision[9:]), np.mean(precision)]
+
+    recall_results = []
+    recall_results += [np.mean(recall[:9]), np.mean(recall[9:]), np.mean(recall)]
+
+    mean_results = np.vstack([np.round(accuracy_results,2), np.round(f1_results,2), np.round(precision_results,2), np.round(recall_results,2)])
+
+    # create horizontal barplots for all metrics
+    fig, ax = plt.subplots()
+    f1_fig = plot_perclass_metric(fig, class_names, f1, 'f1')
+    plt.savefig(os.path.join("models_saved", "f1_fig.jpg"), dpi=300)
+    precision_fig = plot_perclass_metric(fig, class_names, precision, 'precision')
+    plt.savefig(os.path.join("models_saved", "precision_fig.jpg"), dpi=300)
+    recall_fig = plot_perclass_metric(fig, class_names, recall, 'recall')
+    plt.savefig(os.path.join("models_saved", "recall_fig.jpg"), dpi=300)
+    accuracy_fig = plot_perclass_metric(fig, class_names, accuracy, 'accuracy')
+    plt.savefig(os.path.join("models_saved", "accuracy_fig.jpg"), dpi=300)
+    cm_fig, ax = plt.subplots()
+    sns.heatmap(cm, annot=True, cmap='Blues', xticklabels=class_names, yticklabels=class_names, ax=ax)
+    plt.savefig(os.path.join("models_saved", "cm_fig.jpg"), dpi=300)
+    
+    return cm, f1, precision, recall, accuracy, mean_results, cm_fig
 
 
 def mean_class_accuracy(scores, labels):
