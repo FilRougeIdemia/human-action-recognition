@@ -18,9 +18,9 @@ print("device: {}".format(device))
 with open("C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\actions.txt", 'r') as actions_file:
     actions = [line.replace('\n', '') for line in actions_file.readlines()]
     actions_file.close()
-classes = [5, 6, 7, 8, 14, 24, 30, 32, 42]
+classes = [6, 7, 8, 9, 15, 25, 31, 33, 43, 121, 122, 123, 89, 87, 88, 90]
 for i,elem in enumerate(classes):
-    print("class {} : {}".format(i, actions[elem]))
+    print("class {} : {}".format(i, actions[elem-1]))
 
 # Fill-in the zeros in the skeleton npy
 def fill_zeros(arr):
@@ -63,7 +63,7 @@ def predict_on_stream(stream, is_sliding_window=False):
     # Load model
     model = ActionLSTM(nb_classes=len(classes), input_size=2*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device)
-    model.load_state_dict(torch.load("C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\models_saved\\action_lstm_2D.pt"))
+    model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage_0410.pt", map_location=torch.device('cuda:0')))
     model.eval()
 
     filled = fill_zeros(stream)

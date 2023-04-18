@@ -270,8 +270,9 @@ def process_stream_offline(video, # an iterable containing frames of the video s
                     # skeletons are added one-by-one, as soon as there are enough skeletons a prediction is made.
                     skel_stream = np.array(skeletons)[:,:,:2]
                     probs = predict_on_stream(skel_stream, is_sliding_window=False)
-                    top_indices = np.argsort(probs[-1,...])[9-3:]
-                    labels = [actions[c] for c in classes]
+                    # keep only top 3 probs
+                    top_indices = np.argsort(probs[-1,...])[probs.shape[-1]-3:]
+                    labels = [actions[c-1] for c in classes]
                     #skeletons.pop(0) => equivalent to stride=1
                     skeletons = skeletons[stride:] # does not work with stride longer than the window_size with this code
                 if labels is not None:
@@ -279,23 +280,16 @@ def process_stream_offline(video, # an iterable containing frames of the video s
                     # with the latest available annotations
                     annotations = (res['bbox'][:4], [labels[i] for i in top_indices], probs[-1,...][top_indices])
                     vis_frames = visualize(frames=[cur_frame], annotations=[[annotations]])
-                    vis_frame = vis_frames[0]
-                    writer.write(vis_frame)
-                else:
-                    # whether it be because of the window size or labels missing
-                    # if something goes wrong we write the frame
-                    writer.write(cur_frame)
+                    cur_frame = vis_frames[0]
                 # Pop to keep only buffer    
                 pose_det_results_list.pop(0)
-            else:
-                # write frames as the buffer fills in
-                writer.write(cur_frame)
         else:
-            # first frame is empty, we write it
-            # last frame is empty we write only the last one
-            writer.write(cur_frame) # so we always write the current one
             # Empty list to avoid frames without people
             pose_det_results_list = []
+        
+        # At the end of the process for a frame, we write it
+        # if there is a visualization it has been added to the current frame 
+        writer.write(cur_frame)
 
     writer.release()
         
