@@ -18,7 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 from focal_loss import FocalLoss
 from evaluate_training import confusion_matrix, top_k_accuracy
 
-device_index=2
+device_index=0
 if torch.cuda.is_available():
     torch.cuda.set_device(device_index)
     device = torch.device(f"cuda:{device_index}")

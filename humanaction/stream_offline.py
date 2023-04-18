@@ -103,11 +103,11 @@ def abbrev(name):
 
 
 def init_mm_models(mmdet_config_file = "../mmpose/demo/mmdetection_cfg/faster_rcnn_r50_fpn_coco.py",
-                    mmdet_checkpoint_file = "humanaction/mm_checkpoint/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth",
+                    mmdet_checkpoint_file = "data/config/mm_checkpoint/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth",
                     mmpose_config_file_2D = "../mmpose/configs/body/2d_kpt_sview_rgb_vid/posewarper/posetrack18/hrnet_w48_posetrack18_384x288_posewarper_stage2.py",
-                    mmpose_checkpoint_file_2D = "humanaction/mm_checkpoint/hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth",
+                    mmpose_checkpoint_file_2D = "data/config/mm_checkpoint/hrnet_w48_posetrack18_384x288_posewarper_stage2-4abf88db_20211130.pth",
                     mmpose_config_file_3D = "../mmpose/configs/body/3d_kpt_sview_rgb_vid/video_pose_lift/h36m/videopose3d_h36m_243frames_fullconv_supervised_cpn_ft.py",
-                    mmpose_checkpoint_file_3D = "human-action-recognition/humanaction/mm_checkpoint/videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth",
+                    mmpose_checkpoint_file_3D = "data/config/mm_checkpoint/videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth",
                     device = "cuda:0",
                     ):
     print('Stage 1: 2D pose detection.')
@@ -215,72 +215,88 @@ def process_stream_offline(video, # an iterable containing frames of the video s
         # store n pose_det_results, with n=buffer_size
         # as pose2d sequence needs, well, a sequence
         pose_det_results_list.append(copy.deepcopy(pose_det_results))
-        if len(pose_det_results_list) >= buffer_size:
-            ####################################################
-            #----------- Second stage: Pose lifting -----------#
-            ####################################################
-            # extract and pad input pose2d sequence
-            pose_results_2d = extract_pose_sequence(
-                pose_det_results_list,
-                frame_idx=buffer_size-1, #frame_id,#int(1+(buffer_size/2)),
-                causal=True,#data_cfg.causal,
-                seq_len=data_cfg.seq_len, #buffer_size, 
-                step=data_cfg.seq_frame_interval)
+        # In case there is someone on the frame
+        if np.all([len(pdr) != 0 for pdr in pose_det_results_list]):
+            # check if there is a full buffer
+            if len(pose_det_results_list) >= buffer_size :
+                ####################################################
+                #----------- Second stage: Pose lifting -----------#
+                ####################################################
+                # extract and pad input pose2d sequence
+                pose_results_2d = extract_pose_sequence(
+                    pose_det_results_list,
+                    frame_idx=buffer_size-1, #frame_id,#int(1+(buffer_size/2)),
+                    causal=True,#data_cfg.causal,
+                    seq_len=data_cfg.seq_len, #buffer_size, 
+                    step=data_cfg.seq_frame_interval)
 
-            # 2D-to-3D pose lifting
-            pose_lift_results = inference_pose_lifter_model(
-                pose_lift_model,
-                pose_results_2d=pose_results_2d,
-                dataset=pose_lift_dataset,
-                dataset_info=pose_lift_dataset_info,
-                with_track_id=True,
-                image_size=video.resolution,
-                norm_pose_2d=norm_pose_2d)
-            
-            if len(pose_det_results)>1 or len(pose_lift_results)>1:
-                print("two people ?")
-            # Format results
-            for res in pose_det_results:
-                keypoints = res['keypoints']
-                res['keypoints'] = convert_keypoint_definition(keypoints, pose_det_dataset, pose_lift_dataset)
-            for idx, res in enumerate(pose_lift_results):
-                keypoints_3d = res['keypoints_3d']
-                # exchange y,z-axis, and then reverse the direction of x,z-axis
-                keypoints_3d = keypoints_3d[..., [0, 2, 1]]
-                keypoints_3d[..., 0] = -keypoints_3d[..., 0]
-                keypoints_3d[..., 2] = -keypoints_3d[..., 2]
-                # rebase height (z-axis)
-                if rebase_keypoint_height:
-                    keypoints_3d[..., 2] -= np.min(keypoints_3d[..., 2], axis=-1, keepdims=True)
-                res['keypoints_3d'] = keypoints_3d
-                # add title
-                det_res = pose_det_results[idx]
-                instance_id = det_res['track_id']
-                res['title'] = f'Prediction ({instance_id})'
-                # only visualize the target frame
-                res['keypoints'] = det_res['keypoints']
-                res['bbox'] = det_res['bbox']
-                res['track_id'] = instance_id
+                # 2D-to-3D pose lifting
+                pose_lift_results = inference_pose_lifter_model(
+                    pose_lift_model,
+                    pose_results_2d=pose_results_2d,
+                    dataset=pose_lift_dataset,
+                    dataset_info=pose_lift_dataset_info,
+                    with_track_id=True,
+                    image_size=video.resolution,
+                    norm_pose_2d=norm_pose_2d)
+                
+                if len(pose_det_results)>1 or len(pose_lift_results)>1:
+                    print("two people ?")
+                # Format results
+                for res in pose_det_results:
+                    keypoints = res['keypoints']
+                    res['keypoints'] = convert_keypoint_definition(keypoints, pose_det_dataset, pose_lift_dataset)
+                for idx, res in enumerate(pose_lift_results):
+                    keypoints_3d = res['keypoints_3d']
+                    # exchange y,z-axis, and then reverse the direction of x,z-axis
+                    keypoints_3d = keypoints_3d[..., [0, 2, 1]]
+                    keypoints_3d[..., 0] = -keypoints_3d[..., 0]
+                    keypoints_3d[..., 2] = -keypoints_3d[..., 2]
+                    # rebase height (z-axis)
+                    if rebase_keypoint_height:
+                        keypoints_3d[..., 2] -= np.min(keypoints_3d[..., 2], axis=-1, keepdims=True)
+                    res['keypoints_3d'] = keypoints_3d
+                    # add title
+                    det_res = pose_det_results[idx]
+                    instance_id = det_res['track_id']
+                    res['title'] = f'Prediction ({instance_id})'
+                    # only visualize the target frame
+                    res['keypoints'] = det_res['keypoints']
+                    res['bbox'] = det_res['bbox']
+                    res['track_id'] = instance_id
 
-            skeletons.append(res['keypoints'])
-            if len(skeletons) >= window_size:
-                # skeletons are added one-by-one, as soon as there are enough skeletons a prediction is made.
-                skel_stream = np.array(skeletons)[:,:,:2]
-                probs = predict_on_stream(skel_stream, is_sliding_window=False)
-                top_indices = np.argsort(probs[-1,...])[9-3:]
-                labels = [actions[c] for c in classes]
-                #skeletons.pop(0) => equivalent to stride=1
-                skeletons = skeletons[stride:] # does not work with stride longer than the window_size with this code
-            if labels is not None:
-                # Performing visualization
-                # with the latest available annotations
-                annotations = (res['bbox'][:4], [labels[i] for i in top_indices], probs[-1,...][top_indices])
-                vis_frames = visualize(frames=[cur_frame], annotations=[[annotations]])
-                vis_frame = vis_frames[0]
-                writer.write(vis_frame)
+                skeletons.append(res['keypoints'])
+                if len(skeletons) >= window_size:
+                    # skeletons are added one-by-one, as soon as there are enough skeletons a prediction is made.
+                    skel_stream = np.array(skeletons)[:,:,:2]
+                    probs = predict_on_stream(skel_stream, is_sliding_window=False)
+                    top_indices = np.argsort(probs[-1,...])[9-3:]
+                    labels = [actions[c] for c in classes]
+                    #skeletons.pop(0) => equivalent to stride=1
+                    skeletons = skeletons[stride:] # does not work with stride longer than the window_size with this code
+                if labels is not None:
+                    # Performing visualization
+                    # with the latest available annotations
+                    annotations = (res['bbox'][:4], [labels[i] for i in top_indices], probs[-1,...][top_indices])
+                    vis_frames = visualize(frames=[cur_frame], annotations=[[annotations]])
+                    vis_frame = vis_frames[0]
+                    writer.write(vis_frame)
+                else:
+                    # whether it be because of the window size or labels missing
+                    # if something goes wrong we write the frame
+                    writer.write(cur_frame)
+                # Pop to keep only buffer    
+                pose_det_results_list.pop(0)
+            else:
+                # write frames as the buffer fills in
+                writer.write(cur_frame)
+        else:
+            # first frame is empty, we write it
+            # last frame is empty we write only the last one
+            writer.write(cur_frame) # so we always write the current one
+            # Empty list to avoid frames without people
+            pose_det_results_list = []
 
-            # Pop to keep only buffer    
-            pose_det_results_list.pop(0)
     writer.release()
         
 
