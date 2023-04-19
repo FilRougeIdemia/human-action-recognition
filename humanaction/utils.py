@@ -46,10 +46,10 @@ def pre_normalization(data, zaxis=[0, 7], xaxis=[14, 11]):
     N, C, T, V, M = data.shape
     s = np.transpose(data, [0, 4, 2, 3, 1])  # N C T V M -> N M T V C
 
-    print('pad the null frames with the previous frames')
+    #print('pad the null frames with the previous frames')
     for i_s, skeleton in enumerate(s):
-        if skeleton.sum() == 0:
-            print(i_s, ' has no skeleton')
+        #if skeleton.sum() == 0:
+            #print(i_s, ' has no skeleton')
         for i_p, person in enumerate(skeleton):
             if person.sum() == 0:
                 continue
@@ -69,8 +69,8 @@ def pre_normalization(data, zaxis=[0, 7], xaxis=[14, 11]):
                         s[i_s, i_p, i_f:] = pad
                         break
 
-    print('sub the center joint #7 (spine joint in ntu and '
-          'neck joint in kinetics)')
+    #print('sub the center joint #7 (spine joint in ntu and '
+          #'neck joint in kinetics)')
     for i_s, skeleton in enumerate(s):
         if skeleton.sum() == 0:
             continue
@@ -81,8 +81,8 @@ def pre_normalization(data, zaxis=[0, 7], xaxis=[14, 11]):
             mask = (person.sum(-1) != 0).reshape(T, V, 1)
             s[i_s, i_p] = (s[i_s, i_p] - main_body_center) * mask
 
-    print('parallel the bone between hip(jpt 0) and '
-          'spine(jpt 7) of the first person to the z axis')
+    #print('parallel the bone between hip(jpt 0) and '
+          #'spine(jpt 7) of the first person to the z axis')
     for i_s, skeleton in enumerate(s):
         if skeleton.sum() == 0:
             continue
@@ -105,8 +105,8 @@ def pre_normalization(data, zaxis=[0, 7], xaxis=[14, 11]):
                 for i_j, joint in enumerate(frame):
                     s[i_s, i_p, i_f, i_j] = np.dot(matrix_z, joint)
 
-    print('parallel the bone between right shoulder(jpt 14) and '
-          'left shoulder(jpt 11) of the first person to the x axis')
+    #print('parallel the bone between right shoulder(jpt 14) and '
+          #'left shoulder(jpt 11) of the first person to the x axis')
     for i_s, skeleton in enumerate(s):
         if skeleton.sum() == 0:
             continue

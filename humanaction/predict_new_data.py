@@ -130,7 +130,13 @@ def predict_on_stream(stream, is_sliding_window=False):
             anno['original_shape'] = (1080, 1920)
             anno['label'] = [] 
 
-            frames_probs = inference_recognizer(model, anno)
+            frames_probs_ = inference_recognizer(model, anno)
+            #2S-AGCN needs transformation of the results
+            # Create an empty tensor of shape (1, 16)
+            frames_probs = torch.zeros(16)
+            # Fill in the tensor with the values from frames_probs
+            for frame, prob in frames_probs_:
+                frames_probs[frame] = float(prob)
             stream_probs.append(np.expand_dims(frames_probs, axis=0))
         stream_probs =  np.concatenate(stream_probs)
     return stream_probs
