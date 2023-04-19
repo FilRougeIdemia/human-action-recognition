@@ -136,3 +136,18 @@ def get_nonzero_std(s):  # T V C
     else:
         s = 0
     return s
+
+def preprocess_skeleton_sequence_for_inference(data):
+    # takes a sequence of skeletons as input 
+    # returns input for inference with 2S-AGCN
+    data = data.transpose(3, 1, 2, 0)
+    data = pre_normalization(data[np.newaxis, ...])
+    data = data.transpose(0, 4, 2, 3, 1)
+    anno = dict()
+    anno['total_frames'] = data.shape[2]
+    anno['keypoint'] = data[0]
+    anno['frame_dir'] = "NotImportant"
+    anno['img_shape'] = (1080, 1920)
+    anno['original_shape'] = (1080, 1920)
+    anno['label'] = [] 
+    return anno

@@ -142,6 +142,7 @@ def process_stream_offline(video, # an iterable containing frames of the video s
                            radius = 8, # Keypoint radius for visualization
                            thickness = 2, # Link thickness for visualization
                            show = False, # whether to show visualizations.
+                           model_type = "LSTM", # Either LSTM or 2S-AGCN
                            ):
     ####################################################
     #--------- Prepare the two stages ---------#
@@ -265,12 +266,18 @@ def process_stream_offline(video, # an iterable containing frames of the video s
                     res['bbox'] = det_res['bbox']
                     res['track_id'] = instance_id
 
-                #skeletons.append(res['keypoints'])
-                skeletons.append(res['keypoints_3d'])
+                if model_type == "LSTM":
+                    skeletons.append(res['keypoints']) # 2D case
+                elif model_type == "2S-AGCN":
+                    skeletons.append(res['keypoints_3d']) # 3D case
                 if len(skeletons) >= window_size:
                     # skeletons are added one-by-one, as soon as there are enough skeletons a prediction is made.
-                    skel_stream = np.array(skeletons)[:,:,:3] #[:,:,:2] # 2D case
-                    probs = predict_on_stream(skel_stream, is_sliding_window=False)
+                    skel_stream = np.array(skeletons)
+                    if model_type == "LSTM":
+                        skel_stream = skel_stream[:,:,:2]
+                    elif model_type == "2S-AGCN":
+                        skel_stream = skel_stream[:,:,:3]
+                    probs = predict_on_stream(skel_stream, is_sliding_window=False, model_type=model_type)
                     # keep only top 3 probs
                     top_indices = np.argsort(probs[-1,...])[probs.shape[-1]-3:]
                     labels = [actions[c-1] for c in classes]
@@ -314,9 +321,10 @@ if __name__ == '__main__':
     is_sliding_window = True
     window_size = 45
     stride = 30
+    model_type = "2S-AGCN"
 
     video = mmcv.VideoReader(os.path.join(original_video_dir, file_name))
 
     person_det_model, pose_det_model, pose_lift_model = init_mm_models()
 
-    process_stream_offline(video, osp.join(stream_dir, file_name), person_det_model, pose_det_model, pose_lift_model, window_size=window_size, stride=stride)
+    process_stream_offline(video, osp.join(stream_dir, file_name), person_det_model, pose_det_model, pose_lift_model, window_size=window_size, stride=stride, model_type=model_type)
