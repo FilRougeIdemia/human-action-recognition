@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import confusion_matrix
 from torchmetrics.classification import MulticlassF1Score
 import numpy as np
+import time
 
 def evaluate(model, dataloader, device):
     model.eval()
@@ -14,6 +15,8 @@ def evaluate(model, dataloader, device):
     # Evaluate the model on the validation or test dataset
     true_labels = []
     predicted_labels = []
+    
+    start_time = time.time()
 
     with torch.no_grad():
         for data in dataloader:
@@ -25,6 +28,9 @@ def evaluate(model, dataloader, device):
             
             true_labels.extend(labels.cpu().numpy())
             predicted_labels.extend(preds.cpu().numpy())
+            
+    end_time = time.time()
+    elapsed_time = end_time - start_time
 
     # Compute the confusion matrix
     conf_mat = confusion_matrix(true_labels, predicted_labels)
@@ -54,6 +60,7 @@ def evaluate(model, dataloader, device):
     print("Per class F1 :")
     mcf1s_pc = MulticlassF1Score(num_classes=model.classifier[2].out_features, average=None)
     print(mcf1s_pc(preds, target))
+    print("Elapsed time: {:.2f} seconds".format(elapsed_time))
 
 if __name__ == "__main__":
     # need to get the same dataloaders than during training
@@ -75,3 +82,5 @@ if __name__ == "__main__":
 
     evaluate(model, train_dataloader, device)
     evaluate(model, val_dataloader, device)
+    
+    
