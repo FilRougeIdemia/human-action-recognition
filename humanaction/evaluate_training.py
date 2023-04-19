@@ -1,11 +1,12 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import numpy as np
 from sklearn import metrics
-import matplotlib.pyplot as plt
 import seaborn as sns
+
 
 def confusion_matrix(y_pred, y_real, normalize=None):
     """Compute confusion matrix.
+
     Args:
         y_pred (list[int] | np.ndarray[int]): Prediction labels.
         y_real (list[int] | np.ndarray[int]): Ground truth labels.
@@ -13,6 +14,7 @@ def confusion_matrix(y_pred, y_real, normalize=None):
             (rows), predicted (columns) conditions or all the population.
             If None, confusion matrix will not be normalized. Options are
             "true", "pred", "all", None. Default: None.
+
     Returns:
         np.ndarray: Confusion matrix.
     """
@@ -45,29 +47,28 @@ def confusion_matrix(y_pred, y_real, normalize=None):
             f'y_real dtype must be np.int64, but got {y_real.dtype}')
     cm = metrics.confusion_matrix(y_real, y_pred)
 
-    # create confusion matrix
+    '''# create confusion matrix
     class_names = ['pick up', 'throw', 'sit down', 'stand up',
                    'take off jacket', 'reach into pocket', 'point to something', 
                    'check time (from watch)', 'fall down', 'grab bag', 'hold bag',
                    'leave bag', 'put something into bag', 'put on bag', 'take off bag',
                    'take something out of bag']
-    # Create a Matplotlib Figure object
-    fig, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, cmap='Blues', xticklabels=class_names, yticklabels=class_names, ax=ax)
+    confusion_mat = sns.heatmap(cm, annot=True, cmap='Blues', xticklabels=class_names, yticklabels=class_names)'''
     
     # calculate f1, precision and recall
-    f1 = metrics.f1_score(y_real, y_pred, average=None, zero_division=0)
-    precision = metrics.precision_score(y_real, y_pred, average=None, zero_division=0)
-    recall = metrics.recall_score(y_real, y_pred, average=None, zero_division=0)
+    precision, recall, f1, _ = metrics.precision_recall_fscore_support(
+        y_real, y_pred, labels=np.arange(16), average=None, zero_division=0)
 
-    return fig, f1, precision, recall
+    return cm, f1, precision, recall
 
 
 def mean_class_accuracy(scores, labels):
     """Calculate mean class accuracy.
+
     Args:
         scores (list[np.ndarray]): Prediction scores for each class.
         labels (list[int]): Ground truth labels.
+
     Returns:
         np.ndarray: Mean class accuracy.
     """
@@ -85,14 +86,17 @@ def mean_class_accuracy(scores, labels):
 
 def top_k_classes(scores, labels, k=10, mode='accurate'):
     """Calculate the most K accurate (inaccurate) classes.
+
     Given the prediction scores, ground truth label and top-k value,
     compute the top K accurate (inaccurate) classes.
+
     Args:
         scores (list[np.ndarray]): Prediction scores for each class.
         labels (list[int] | np.ndarray): Ground truth labels.
         k (int): Top-k values. Default: 10.
         mode (str): Comparison mode for Top-k. Options are 'accurate'
             and 'inaccurate'. Default: 'accurate'.
+
     Return:
         list: List of sorted (from high accuracy to low accuracy for
             'accurate' mode, and from low accuracy to high accuracy for
@@ -121,10 +125,12 @@ def top_k_classes(scores, labels, k=10, mode='accurate'):
 
 def top_k_accuracy(scores, labels, topk=(1, )):
     """Calculate top k accuracy score.
+
     Args:
         scores (list[np.ndarray]): Prediction scores for each class.
         labels (list[int]): Ground truth labels.
         topk (tuple[int]): K value for top_k_accuracy. Default: (1, ).
+
     Returns:
         list[float]: Top k accuracy score for each k.
     """
@@ -135,7 +141,20 @@ def top_k_accuracy(scores, labels, topk=(1, )):
         match_array = np.logical_or.reduce(max_k_preds == labels, axis=1)
         topk_acc_score = match_array.sum() / match_array.shape[0]
         res.append(topk_acc_score)
+    
+    # added below to calculate topk accuracy per class:
+    '''num_classes = len(scores)
+    res_ = [[] for _ in range(num_classes)]
+    labels = np.array(labels)[:, np.newaxis]
 
+    for k in topk:
+        max_k_preds = np.argsort(scores, axis=1)[:, -k:][:, ::-1]
+        match_array = np.logical_or.reduce(max_k_preds == labels, axis=1)
+        for c in range(num_classes):
+            class_mask = (labels == c)
+            class_match_array = match_array[class_mask]
+            class_topk_acc_score = class_match_array.sum() / class_match_array.shape[0]
+            res_[c].append(class_topk_acc_score)'''
     return res
 
 
@@ -144,11 +163,13 @@ def mmit_mean_average_precision(scores, labels):
     MMIT style mAP on Multi-Moments in Times. The difference is that this
     method calculates average-precision for each sample and averages them among
     samples.
+
     Args:
         scores (list[np.ndarray]): Prediction scores of different classes for
             each sample.
         labels (list[np.ndarray]): Ground truth many-hot vector for each
             sample.
+
     Returns:
         np.float: The MMIT style mean average precision.
     """
@@ -162,11 +183,13 @@ def mmit_mean_average_precision(scores, labels):
 
 def mean_average_precision(scores, labels):
     """Mean average precision for multi-label recognition.
+
     Args:
         scores (list[np.ndarray]): Prediction scores of different classes for
             each sample.
         labels (list[np.ndarray]): Ground truth many-hot vector for each
             sample.
+
     Returns:
         np.float: The mean average precision.
     """
@@ -186,11 +209,13 @@ def mean_average_precision(scores, labels):
 
 def binary_precision_recall_curve(y_score, y_true):
     """Calculate the binary precision recall curve at step thresholds.
+
     Args:
         y_score (np.ndarray): Prediction scores for each class.
             Shape should be (num_classes, ).
         y_true (np.ndarray): Ground truth many-hot vector.
             Shape should be (num_classes, ).
+
     Returns:
         precision (np.ndarray): The precision of different thresholds.
         recall (np.ndarray): The recall of different thresholds.
@@ -230,6 +255,7 @@ def pairwise_temporal_iou(candidate_segments,
                           target_segments,
                           calculate_overlap_self=False):
     """Compute intersection over union between segments.
+
     Args:
         candidate_segments (np.ndarray): 1-dim/2-dim array in format
             ``[init, end]/[m x 2:=[init, end]]``.
@@ -237,6 +263,7 @@ def pairwise_temporal_iou(candidate_segments,
             ``[n x 2:=[init, end]]``.
         calculate_overlap_self (bool): Whether to calculate overlap_self
             (union / candidate_length) or not. Default: False.
+
     Returns:
         t_iou (np.ndarray): 1-dim array [n] /
             2-dim array [n x m] with IoU ratio.
@@ -292,6 +319,7 @@ def average_recall_at_avg_proposals(ground_truth,
                                         0.5, 0.95, 10)):
     """Computes the average recall given an average number (percentile) of
     proposals per video.
+
     Args:
         ground_truth (dict): Dict containing the ground truth instances.
         proposals (dict): Dict containing the proposal instances.
@@ -301,6 +329,7 @@ def average_recall_at_avg_proposals(ground_truth,
             Default: None.
         temporal_iou_thresholds (np.ndarray): 1D array with temporal_iou
             thresholds. Default: ``np.linspace(0.5, 0.95, 10)``.
+
     Returns:
         tuple([np.ndarray, np.ndarray, np.ndarray, float]):
             (recall, average_recall, proposals_per_video, auc)
@@ -408,14 +437,17 @@ def average_recall_at_avg_proposals(ground_truth,
 
 def get_weighted_score(score_list, coeff_list):
     """Get weighted score with given scores and coefficients.
+
     Given n predictions by different classifier: [score_1, score_2, ...,
     score_n] (score_list) and their coefficients: [coeff_1, coeff_2, ...,
     coeff_n] (coeff_list), return weighted score: weighted_score =
     score_1 * coeff_1 + score_2 * coeff_2 + ... + score_n * coeff_n
+
     Args:
         score_list (list[list[np.ndarray]]): List of list of scores, with shape
             n(number of predictions) X num_samples X num_classes
         coeff_list (list[float]): List of coefficients, with shape n.
+
     Returns:
         list[np.ndarray]: List of weighted scores.
     """
@@ -429,11 +461,20 @@ def get_weighted_score(score_list, coeff_list):
     weighted_scores = list(np.dot(scores.T, coeff).T)
     return weighted_scores
 
+
+def softmax(x, dim=1):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x, axis=dim, keepdims=True))
+    return e_x / e_x.sum(axis=dim, keepdims=True)
+
+
 def interpolated_precision_recall(precision, recall):
     """Interpolated AP - VOCdevkit from VOC 2011.
+
     Args:
         precision (np.ndarray): The precision of different thresholds.
         recall (np.ndarray): The recall of different thresholds.
+
     Returns：
         float: Average precision score.
     """
@@ -454,6 +495,7 @@ def average_precision_at_temporal_iou(ground_truth,
     predicted data frames. If multiple predictions match the same predicted
     segment, only the one with highest score is matched as true positive. This
     code is greatly inspired by Pascal VOC devkit.
+
     Args:
         ground_truth (dict): Dict containing the ground truth instances.
             Key: 'video_id'
@@ -463,6 +505,7 @@ def average_precision_at_temporal_iou(ground_truth,
             't-end' and 'score'.
         temporal_iou_thresholds (np.ndarray): 1D array with temporal_iou
             thresholds. Default: ``np.linspace(0.5, 0.95, 10)``.
+
     Returns:
         np.ndarray: 1D array of average precision score.
     """
@@ -528,3 +571,4 @@ def average_precision_at_temporal_iou(ground_truth,
                                                   recall_cumsum[t_idx, :])
 
     return ap
+

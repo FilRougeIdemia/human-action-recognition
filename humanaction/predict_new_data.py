@@ -1,6 +1,7 @@
 # Model
 # Declare a LSTM and train it on NTU skeleton action data
 import os
+import os.path as osp
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
@@ -9,13 +10,15 @@ import numpy as np
 import copy
 from model import HumanActionDataset, ActionLSTM, PadSequence
 import cv2
+from mmaction.apis import init_recognizer, inference_recognizer
+from utils import get_nonzero_std, pre_normalization
 
 # setting the device as the GPU if available, else the CPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("device: {}".format(device))
 
 
-with open("C:\\Users\\Shadow\\Documents\\Projets\\MastereIA\\Idemia\\human-action-recognition\\data\\actions.txt", 'r') as actions_file:
+with open("data/actions.txt", 'r') as actions_file:
     actions = [line.replace('\n', '') for line in actions_file.readlines()]
     actions_file.close()
 classes = [6, 7, 8, 9, 15, 25, 31, 33, 43, 121, 122, 123, 89, 87, 88, 90]
@@ -61,33 +64,73 @@ def duplicate_array(arr, stride):
 
 def predict_on_stream(stream, is_sliding_window=False):
     # Load model
+    # LSTM
+    '''
     model = ActionLSTM(nb_classes=len(classes), input_size=2*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device)
     model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage_0410.pt", map_location=torch.device('cuda:0')))
     model.eval()
+    '''
+    # 2S-AGCN
+    config_file = '../mmaction2/configs/skeleton/2s-agcn/2sagcn_mmpose_keypoint_3d.py'  # Replace with the path to your model's configuration file
+    checkpoint_file = '../mmaction2/configs/skeleton/2s-agcn/best_top1_acc_epoch_8.pth'  # Replace with the path to your model's checkpoint file
+    model = init_recognizer(config_file, checkpoint_file, device='cuda:0')
 
     filled = fill_zeros(stream)
-    tensor = torch.Tensor(filled)
-    tensor = tensor.reshape((1, tensor.shape[0], 2*17))/1000 # todo manage this with Dataloader ?
+    filled = filled.reshape((1, filled.shape[0], 3*17))
+
+    #tensor = torch.Tensor(filled)
+    #tensor = tensor.reshape((1, tensor.shape[0], 3*17))/1000 # todo manage this with Dataloader ?
 
     if is_sliding_window:
+        '''
         input = tensor.to(device)
         h_n, c_n = None, None
         output, h_n, c_n = model(input, h_n, c_n)
         h_n, c_n = copy.copy(h_n).to(device), copy.copy(c_n).to(device)
         sm = nn.Softmax(dim=1).to(device)    
         probs_ = sm(output).reshape(len(classes)).detach().cpu().numpy()
+        '''
+        # case of 2S-AGCN
+        data = filled.reshape(1, filled.shape[1], 17, 3)
+        data = data.transpose(3, 1, 2, 0)
+        data = pre_normalization(data[np.newaxis, ...])
+        data = data.transpose(0, 4, 2, 3, 1)
+        anno = dict()
+        anno['total_frames'] = data.shape[2]
+        anno['keypoint'] = data[0]
+        anno['frame_dir'] = "NotImportant"
+        anno['img_shape'] = (1080, 1920)
+        anno['original_shape'] = (1080, 1920)
+        anno['label'] = [] 
+        probs_ = inference_recognizer(model, anno)
         stream_probs = np.tile(probs_, (len(stream), 1))
     else:
         stream_probs = []
         for frame_count in range(len(stream)):
             # Let's go through each frame of the window
+            '''
             x = tensor[:, :frame_count+1, ...].to(device) # first element, data (and no label)
             h_n, c_n = None, None
             output, h_n, c_n = model(x, h_n, c_n)
             h_n, c_n = copy.copy(h_n).to(device), copy.copy(c_n).to(device)
             sm = nn.Softmax(dim=1).to(device)
             frames_probs = sm(output).reshape(len(classes)).detach().cpu().numpy()
+            '''
+            # case of 2S-AGCN
+            data = filled.reshape(1, filled.shape[1], 17, 3)[:, :frame_count+1, ...]
+            data = data.transpose(3, 1, 2, 0)
+            data = pre_normalization(data[np.newaxis, ...])
+            data = data.transpose(0, 4, 2, 3, 1)
+            anno = dict()
+            anno['total_frames'] = data.shape[2]
+            anno['keypoint'] = data[0]
+            anno['frame_dir'] = "NotImportant"
+            anno['img_shape'] = (1080, 1920)
+            anno['original_shape'] = (1080, 1920)
+            anno['label'] = [] 
+
+            frames_probs = inference_recognizer(model, anno)
             stream_probs.append(np.expand_dims(frames_probs, axis=0))
         stream_probs =  np.concatenate(stream_probs)
     return stream_probs

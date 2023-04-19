@@ -265,10 +265,11 @@ def process_stream_offline(video, # an iterable containing frames of the video s
                     res['bbox'] = det_res['bbox']
                     res['track_id'] = instance_id
 
-                skeletons.append(res['keypoints'])
+                #skeletons.append(res['keypoints'])
+                skeletons.append(res['keypoints_3d'])
                 if len(skeletons) >= window_size:
                     # skeletons are added one-by-one, as soon as there are enough skeletons a prediction is made.
-                    skel_stream = np.array(skeletons)[:,:,:2]
+                    skel_stream = np.array(skeletons)[:,:,:3] #[:,:,:2] # 2D case
                     probs = predict_on_stream(skel_stream, is_sliding_window=False)
                     # keep only top 3 probs
                     top_indices = np.argsort(probs[-1,...])[probs.shape[-1]-3:]

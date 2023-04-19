@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import confusion_matrix
 from torchmetrics.classification import MulticlassF1Score
 import numpy as np
+from evaluate_training import confusion_matrix
+from model import plot_class_distribution, calculate_sample_weights, WeightedRandomSampler
 
 def evaluate(model, dataloader, device):
     model.eval()
@@ -14,6 +16,8 @@ def evaluate(model, dataloader, device):
     # Evaluate the model on the validation or test dataset
     true_labels = []
     predicted_labels = []
+    all_outputs = []
+    all_labels = []
 
     with torch.no_grad():
         for data in dataloader:
@@ -23,9 +27,12 @@ def evaluate(model, dataloader, device):
             outputs, _, _ = model(inputs, h_n, c_n)
             _, preds = torch.max(outputs, 1)
             
-            true_labels.extend(labels.cpu().numpy())
-            predicted_labels.extend(preds.cpu().numpy())
+            #true_labels.extend(labels.cpu().numpy())
+            #predicted_labels.extend(preds.cpu().numpy())
+            all_labels.extend(data[-1].tolist())
+            all_outputs.extend(outputs.tolist())
 
+    '''
     # Compute the confusion matrix
     conf_mat = confusion_matrix(true_labels, predicted_labels)
     print("----------------------------------------------------------------------------------")
@@ -54,6 +61,12 @@ def evaluate(model, dataloader, device):
     print("Per class F1 :")
     mcf1s_pc = MulticlassF1Score(num_classes=model.classifier[2].out_features, average=None)
     print(mcf1s_pc(preds, target))
+    '''
+    cm, f1, precision, recall = confusion_matrix(all_outputs, all_labels, normalize=None)
+    print("----------------------------------------------------------------------------------")
+    print("Confusion matrix :")
+    print(cm)
+
 
 if __name__ == "__main__":
     # need to get the same dataloaders than during training
@@ -63,15 +76,25 @@ if __name__ == "__main__":
     print("device: {}".format(device))
 
     # Instanciate dataset
-    HAD = HumanActionDataset('3D', is_train=True)
+    HAD = HumanActionDataset('2D', is_train=True)
     train_dataset, val_dataset = stratified_split(dataset=HAD, test_size=0.2)
-    train_dataloader = DataLoader(dataset=train_dataset)
-    val_dataloader = DataLoader(dataset=val_dataset)
+
+    # Calculate sample weights
+    train_sample_weights = calculate_sample_weights(train_dataset)
+    val_sample_weights = calculate_sample_weights(val_dataset)
+
+    # Create WeightedRandomSamplers
+    train_sampler = WeightedRandomSampler(train_sample_weights, len(train_dataset))
+    val_sampler = WeightedRandomSampler(val_sample_weights, len(val_dataset))
+
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=24, collate_fn=PadSequence(), sampler=train_sampler)
+    val_dataloader = DataLoader(dataset=val_dataset, batch_size=24, collate_fn=PadSequence(), sampler=val_sampler)
+
     # Instanciate model
     model = ActionLSTM(nb_classes=len(HAD.classes), input_size=HAD.data_dim*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device) 
-    model.load_state_dict(torch.load("models_saved/action_lstm_3D_luggage_0329.pt"))
+    model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage_0410.pt", map_location=torch.device('cuda:0')))
     model.eval()
 
-    evaluate(model, train_dataloader, device)
+    #evaluate(model, train_dataloader, device)
     evaluate(model, val_dataloader, device)
