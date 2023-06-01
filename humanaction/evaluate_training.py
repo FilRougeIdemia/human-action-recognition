@@ -113,16 +113,16 @@ def compute_metrics(y_pred, y_real, normalize=None):
     # create horizontal barplots for all metrics
     fig, ax = plt.subplots()
     f1_fig = plot_perclass_metric(fig, class_names, f1, 'f1')
-    plt.savefig(os.path.join("models_saved", "f1_fig.jpg"), dpi=300)
+    plt.savefig(os.path.join("models_saved", "f1_fig.jpg"), dpi=300, bbox_inches = 'tight')
     precision_fig = plot_perclass_metric(fig, class_names, precision, 'precision')
-    plt.savefig(os.path.join("models_saved", "precision_fig.jpg"), dpi=300)
+    plt.savefig(os.path.join("models_saved", "precision_fig.jpg"), dpi=300, bbox_inches = 'tight')
     recall_fig = plot_perclass_metric(fig, class_names, recall, 'recall')
-    plt.savefig(os.path.join("models_saved", "recall_fig.jpg"), dpi=300)
+    plt.savefig(os.path.join("models_saved", "recall_fig.jpg"), dpi=300, bbox_inches = 'tight')
     accuracy_fig = plot_perclass_metric(fig, class_names, accuracy, 'accuracy')
-    plt.savefig(os.path.join("models_saved", "accuracy_fig.jpg"), dpi=300)
-    cm_fig, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, cmap='Blues', xticklabels=class_names, yticklabels=class_names, ax=ax)
-    plt.savefig(os.path.join("models_saved", "cm_fig.jpg"), dpi=300)
+    plt.savefig(os.path.join("models_saved", "accuracy_fig.jpg"), dpi=300, bbox_inches = 'tight')
+    cm_fig, ax = plt.subplots(figsize=(8,4))
+    sns.heatmap(cm, annot=True, cmap='Blues', xticklabels=class_names, yticklabels=class_names, ax=ax, fmt='g')
+    plt.savefig(os.path.join("models_saved", "cm_fig.jpg"), dpi=300, bbox_inches = 'tight')
     
     return cm, f1, precision, recall, accuracy, mean_results, cm_fig
 

@@ -9,7 +9,7 @@ import numpy as np
 from evaluate_training import compute_metrics 
 from model import calculate_sample_weights, WeightedRandomSampler
 import matplotlib.pyplot as plt
-import os
+import time
 
 def evaluate(model, dataloader, device):
     model.eval()
@@ -17,6 +17,8 @@ def evaluate(model, dataloader, device):
     # Evaluate the model on the validation or test dataset
     all_outputs = []
     all_labels = []
+
+    start_time = time.time()
 
     with torch.no_grad():
         for data in dataloader:
@@ -28,6 +30,10 @@ def evaluate(model, dataloader, device):
 
             all_outputs.extend(outputs.tolist())
             all_labels.extend(data[-1].tolist())
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print("Elapsed time: {:.2f} seconds".format(elapsed_time))
 
     cm, f1, precision, recall, accuracy, mean_results, cm_fig = compute_metrics(all_outputs, all_labels)
 
