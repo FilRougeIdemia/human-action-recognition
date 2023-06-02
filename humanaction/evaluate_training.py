@@ -3,6 +3,7 @@ import numpy as np
 from sklearn import metrics
 import seaborn as sns
 import os
+import matplotlib.pyplot as plt
 
 
 def plot_perclass_metric(fig, x, y, metric):
@@ -81,7 +82,7 @@ def compute_metrics(y_pred, y_real, normalize=None):
             f'y_real dtype must be np.int64, but got {y_real.dtype}')
     cm = metrics.confusion_matrix(y_real, y_pred)
 
-    '''# create confusion matrix
+    # create confusion matrix
     class_names = ['pick up', 'throw', 'sit down', 'stand up',
                    'take off jacket', 'reach into pocket', 'point to something', 
                    'check time (from watch)', 'fall down', 'grab bag', 'hold bag',
@@ -209,7 +210,7 @@ def top_k_accuracy(scores, labels, topk=(1, )):
         res.append(topk_acc_score)
     
     # added below to calculate topk accuracy per class:
-    '''num_classes = len(scores)
+    num_classes = len(scores)
     res_ = [[] for _ in range(num_classes)]
     labels = np.array(labels)[:, np.newaxis]
 
@@ -220,7 +221,7 @@ def top_k_accuracy(scores, labels, topk=(1, )):
             class_mask = (labels == c)
             class_match_array = match_array[class_mask]
             class_topk_acc_score = class_match_array.sum() / class_match_array.shape[0]
-            res_[c].append(class_topk_acc_score)'''
+            res_[c].append(class_topk_acc_score)
     return res
 
 
