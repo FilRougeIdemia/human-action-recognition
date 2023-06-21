@@ -16,7 +16,7 @@ from torch.utils.data import WeightedRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 # local import
 from focal_loss import FocalLoss
-from evaluate_training import confusion_matrix, top_k_accuracy
+from evaluate_training import compute_metrics
 
 device_index=0
 if torch.cuda.is_available():
@@ -110,6 +110,7 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
     step_log_loss_train, step_log_acc_train = 0, 0
     # Initialize/Reinitialize at each epoch
     epoch_log_loss, epoch_log_acc, epoch_log_obs_cnt = 0, 0, 0 
+    epoch_log_loss_per_class = {}
 
     # counter 
     # counts number of samples of each class
@@ -162,10 +163,7 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
 
         # Log to TensorBoard each epoch_log_frequence for metrics on the entire train and validation sets
         if(epoch%epoch_log_frequence==0):
-            print(counter)
-            '''
             plot_class_distribution(train_dataset, "Train Dataset Class Distribution With Weighted Sampler", writer, "Train_Dataset_Weighted")
-            
             model.eval()
             with torch.no_grad():
                 # Go through the data with dataloaders to take advantage of samplers
@@ -174,24 +172,38 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
                     all_preds = []
                     all_labels = []
                     all_outputs = []
+                    # count number of samples of each class
+                    counter = {}
                     for data in dataloader:
-                        inputs = data[0].to(device)
-                        labels = torch.zeros((inputs.shape[0], len(classes)))
-                        for i in range(inputs.shape[0]):
-                            labels[i][int(data[-1][i])] = 1
-                        labels = labels.to(device)
-                        epoch_log_obs_cnt += len(inputs)
-                        outputs = model(inputs)[0]
-                        preds = torch.argmax(outputs, dim=1)
-                        loss = criterion(outputs, labels)
-                        epoch_log_loss += loss.item()
-                        epoch_log_acc += int(torch.sum(outputs.argmax(dim=1) == labels.argmax(dim=1)))
-                        all_preds.extend(preds.tolist())
-                        all_labels.extend(data[-1].tolist())
-                        all_outputs.extend(outputs.tolist())
+                        for inputs, label in zip(data[0], data[-1]):
+                            inputs = (torch.unsqueeze(inputs, 0)).to(device)
+                            labels = torch.zeros((1, len(classes)))
+                            labels[0][int(label)] = 1
+                            labels = labels.to(device)
+                            epoch_log_obs_cnt += 1
+                            outputs = model(inputs)[0]
+                            preds = torch.argmax(outputs, dim=1)
+                            loss = criterion(outputs, labels)
+                            epoch_log_loss += loss.item()
+                            if str(label.item()) in epoch_log_loss_per_class:
+                                epoch_log_loss_per_class[str(label.item())] += loss.item()
+                            else:
+                                epoch_log_loss_per_class[str(label.item())] = loss.item()
+                            if str(label.item()) in counter:
+                                counter[str(label.item())] += 1
+                            else:
+                                counter[str(label.item())] = 1
+                            epoch_log_acc += int(torch.sum(outputs.argmax(dim=1) == labels.argmax(dim=1)))
+                            all_preds.append(preds.item())
+                            all_labels.append(label.item())
+                            all_outputs.extend(outputs.tolist())
+
                     # Calculate loss 
                     epoch_log_loss /= len(dataloader)
                     writer.add_scalar(f"Loss [{dataset_type} set][Epoch interval:{epoch_log_frequence}]", epoch_log_loss, global_step=step)
+                    # Calculate loss per class
+                    epoch_log_loss_per_class = {key:val/len(dataloader) for key, val in epoch_log_loss_per_class.items()}
+                    writer.add_scalars(f"Loss per class [{dataset_type} set][Epoch interval:{epoch_log_frequence}]", epoch_log_loss_per_class, global_step=step)
                     # Calculate accuracy for the entire val_dataset
                     epoch_log_acc /= epoch_log_obs_cnt
                     writer.add_scalar(f"Accuracy overall [{dataset_type} set][Epoch interval:{epoch_log_frequence}]", epoch_log_acc, global_step=step)
@@ -204,7 +216,7 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
                         acc_per_class.update({act:correct / len(all_labels_bin)})
                     writer.add_scalars(f"Accuracy per class [{dataset_type} set][Epoch interval:{epoch_log_frequence}]", acc_per_class, global_step=step)
                     # Calculate confusion matrix for the entire val_dataset
-                    confusion_mat, f1, precision, recall = confusion_matrix(all_outputs, all_labels, normalize=None)
+                    cm, f1, precision, recall, accuracy, mean_results, confusion_mat = compute_metrics(all_outputs, all_labels, normalize=None)
                     writer.add_scalar(f'F1 overall [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', np.mean(f1), global_step=step)
                     writer.add_scalars(f'F1 per class [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', {act:f1[act_idx] for act_idx, act in train_dataset.dataset.classes_names.items()}, global_step=step)
                     writer.add_scalar(f'Precision overall [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', np.mean(precision), global_step=step)
@@ -212,11 +224,13 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
                     writer.add_scalar(f'Recall overall [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', np.mean(recall), global_step=step)
                     writer.add_scalars(f'Recall per class [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', {act:precision[act_idx] for act_idx, act in train_dataset.dataset.classes_names.items()}, global_step=step)
                     writer.add_figure(f'Confusion [{dataset_type} set][Epoch interval:{epoch_log_frequence}]', confusion_mat, global_step=step)
+                    
+                    # Count nb of files per class
+                    writer.add_scalars(f"Nb of files per class [{dataset_type} set][Epoch interval:{epoch_log_frequence}]", counter, global_step=step)
 
                     # reset to 0 to compute over the next (dataloader, epoch)
                     print(f"Epoch {epoch + 1}/{nb_epochs} - Loss {dataset_type} : {epoch_log_loss}, Accuracy: {epoch_log_acc}")
                     epoch_log_loss, epoch_log_acc, epoch_log_obs_cnt = 0, 0, 0
-            '''
 
 
 class ActionLSTM(nn.Module):

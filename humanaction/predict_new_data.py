@@ -11,7 +11,6 @@ import copy
 from model import HumanActionDataset, ActionLSTM, PadSequence
 import cv2
 from mmaction.apis import init_recognizer, inference_recognizer
-from utils import pre_normalization, preprocess_skeleton_sequence_for_inference
 
 # setting the device as the GPU if available, else the CPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -62,8 +61,20 @@ def duplicate_array(arr, stride):
     return np.array(result)
 
 
-def predict_on_stream(stream, is_sliding_window=False, model_type="LSTM"):
-    # Complete missing values in stream
+def predict_on_stream(stream, is_sliding_window=False):
+    # Load model
+    # LSTM
+    '''
+    model = ActionLSTM(nb_classes=len(classes), input_size=2*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
+    model.to(device)
+    model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage_0410.pt", map_location=torch.device('cuda:0')))
+    model.eval()
+    '''
+    # 2S-AGCN
+    config_file = '../mmaction2/configs/skeleton/2s-agcn/2sagcn_mmpose_keypoint_3d.py'  # Replace with the path to your model's configuration file
+    checkpoint_file = '../mmaction2/configs/skeleton/2s-agcn/best_top1_acc_epoch_8.pth'  # Replace with the path to your model's checkpoint file
+    model = init_recognizer(config_file, checkpoint_file, device='cuda:0')
+
     filled = fill_zeros(stream)
     
     # LSTM
@@ -77,8 +88,22 @@ def predict_on_stream(stream, is_sliding_window=False, model_type="LSTM"):
         tensor = torch.Tensor(filled)
         tensor = tensor.reshape((1, tensor.shape[0], 2*17))/1000 # todo manage this with Dataloader ?
 
-        if is_sliding_window:
-            input = tensor.to(device)
+    if is_sliding_window:
+        input = tensor.to(device)
+        '''
+        h_n, c_n = None, None
+        output, h_n, c_n = model(input, h_n, c_n)
+        h_n, c_n = copy.copy(h_n).to(device), copy.copy(c_n).to(device)
+        sm = nn.Softmax(dim=1).to(device)    
+        probs_ = sm(output).reshape(len(classes)).detach().cpu().numpy()
+        '''
+        probs_ = inference_recognizer(model, input)
+        stream_probs = np.tile(probs_, (len(stream), 1))
+    else:
+        stream_probs = []
+        for frame_count in range(len(stream)):
+            # Let's go through each frame of the window
+            x = tensor[:, :frame_count+1, ...].to(device) # first element, data (and no label)
             h_n, c_n = None, None
             output, h_n, c_n = model(input, h_n, c_n)
             h_n, c_n = copy.copy(h_n).to(device), copy.copy(c_n).to(device)

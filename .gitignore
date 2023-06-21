@@ -22,6 +22,7 @@ idemia_venv
 
 # Runs for TensorBoard
 runs
+<<<<<<< HEAD
 
 # Misc
 configs/
@@ -30,3 +31,6 @@ humanaction/V2.py
 notebooks/data_comparison.ipynb
 requirement_old.txt
 runs_old/
+=======
+runs_old
+>>>>>>> e6d2f6857ef5db353558622fe08c534a4ba2742f
