@@ -8,6 +8,7 @@ from sklearn.metrics import confusion_matrix
 from torchmetrics.classification import MulticlassF1Score
 import numpy as np
 import time
+from model import calculate_sample_weights, WeightedRandomSampler
 
 def evaluate(model, dataloader, device):
     model.eval()
@@ -81,13 +82,13 @@ if __name__ == "__main__":
     train_sampler = WeightedRandomSampler(train_sample_weights, len(train_dataset))
     val_sampler = WeightedRandomSampler(val_sample_weights, len(val_dataset))
 
-    train_dataloader = DataLoader(dataset=train_dataset, batch_size=24, collate_fn=PadSequence(), sampler=train_sampler)
+    predicted_labels = DataLoader(dataset=train_dataset, batch_size=24, collate_fn=PadSequence(), sampler=train_sampler)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=24, collate_fn=PadSequence(), sampler=val_sampler)
 
     # Instanciate model
     model = ActionLSTM(nb_classes=len(HAD.classes), input_size=HAD.data_dim*17, hidden_size_lstm=256, hidden_size_classifier=128, num_layers=1, device=device)
     model.to(device) 
-    model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage_0410.pt", map_location=torch.device('cuda:0')))
+    model.load_state_dict(torch.load("models_saved/action_lstm_2D_luggage_0601.pt", map_location=torch.device('cuda:0')))
     model.eval()
 
     #evaluate(model, train_dataloader, device)

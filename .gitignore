@@ -22,3 +22,11 @@ idemia_venv
 
 # Runs for TensorBoard
 runs
+
+# Misc
+configs/
+data.zip
+humanaction/V2.py
+notebooks/data_comparison.ipynb
+requirement_old.txt
+runs_old/

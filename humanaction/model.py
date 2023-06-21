@@ -111,6 +111,10 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
     # Initialize/Reinitialize at each epoch
     epoch_log_loss, epoch_log_acc, epoch_log_obs_cnt = 0, 0, 0 
 
+    # counter 
+    # counts number of samples of each class
+    counter = {}
+
     for epoch in range(nb_epochs):
         model.train()
 
@@ -149,9 +153,19 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
                 # reset to 0 to compute over the next step interval
                 step_log_loss_train, step_log_acc_train = 0, 0
 
+            # update counter
+            for label in data[-1].tolist():
+                if label in counter:
+                    counter[label] += 1
+                else:
+                    counter[label] = 1
+
         # Log to TensorBoard each epoch_log_frequence for metrics on the entire train and validation sets
         if(epoch%epoch_log_frequence==0):
+            print(counter)
+            '''
             plot_class_distribution(train_dataset, "Train Dataset Class Distribution With Weighted Sampler", writer, "Train_Dataset_Weighted")
+            
             model.eval()
             with torch.no_grad():
                 # Go through the data with dataloaders to take advantage of samplers
@@ -202,7 +216,7 @@ def train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, ste
                     # reset to 0 to compute over the next (dataloader, epoch)
                     print(f"Epoch {epoch + 1}/{nb_epochs} - Loss {dataset_type} : {epoch_log_loss}, Accuracy: {epoch_log_acc}")
                     epoch_log_loss, epoch_log_acc, epoch_log_obs_cnt = 0, 0, 0
-                    
+            '''
 
 
 class ActionLSTM(nn.Module):
@@ -326,7 +340,7 @@ def main():
     step_log_frequence_train = 10
     # Train
     train_model(model, criterion, optimizer, nb_epochs, epoch_log_frequence, step_log_frequence_train, train_dataset, val_dataset, train_dataloader, val_dataloader, HAD.classes, device, writer)
-    torch.save(model.state_dict(), f"models_saved/action_lstm_{HAD.data_type}_luggage_0410.pt")
+    torch.save(model.state_dict(), f"models_saved/action_lstm_{HAD.data_type}_luggage_0601.pt")
 
 if __name__ == "__main__":
     main()
